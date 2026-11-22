@@ -198,7 +198,7 @@ function PANEL:DoRightClick()
 					end
 					itemTable.player = nil
 				end)
-				subMenuOption:SetImage(v.icon or "icon16/brick.png")
+				ix.cotzIcons.SetMenuImage(subMenuOption, v.icon or "icon16/brick.png")
 
 				if v.multiOptions then
 					local options = isfunction(v.multiOptions) and v.multiOptions(itemTable, LocalPlayer())
@@ -225,7 +225,7 @@ function PANEL:DoRightClick()
 					end
 				end
 			else
-				menu:AddOption(L(v.name or k), function()
+				local option = menu:AddOption(L(v.name or k), function()
 					itemTable.player = LocalPlayer()
 					local send = true
 
@@ -241,7 +241,8 @@ function PANEL:DoRightClick()
 						inventoryAction(k, itemTable.id, inventory)
 					end
 					itemTable.player = nil
-				end):SetImage(v.icon or "icon16/brick.png")
+				end)
+				ix.cotzIcons.SetMenuImage(option, v.icon or "icon16/brick.png")
 			end
 		end
 
@@ -266,7 +267,7 @@ function PANEL:DoRightClick()
 				end
 				itemTable.player = nil
 			end)
-			subMenuOption:SetImage("icon16/stalker/drop.png")
+			ix.cotzIcons.SetMenuImage(subMenuOption, "icon16/stalker_grey/drop.png")
 
 			local dropInfo = itemTable.functions.drop
 			local dropOption = subMenu:AddOption("Drop Persistently", function()
@@ -286,7 +287,7 @@ function PANEL:DoRightClick()
 				end
 				itemTable.player = nil
 			end)
-			dropOption:SetImage("icon16/stalker/drop.png")
+			ix.cotzIcons.SetMenuImage(dropOption, "icon16/stalker_grey/drop.png")
 		end
 
 		menu:Open()
@@ -376,6 +377,7 @@ function PANEL:ExtraPaint(width, height) end
 local blackCol = Color(0, 0, 0, 85)
 local yellowCol = Color(255, 192, 0, 20)
 local purpleCol = Color(127, 0, 255, 20)
+local greenCol = Color(80, 200, 100, 20)
 local gradientMat = Material("vgui/gradient-u")
 local gradientLMat = Material("vgui/gradient-l")
 local gradientRMat = Material("vgui/gradient-r")
@@ -475,6 +477,9 @@ function PANEL:Init()
 	for item in pairs(self.highlightContacts.Progression) do
 		self.highlghtItems[item] = self.highlghtItems[item] == "Task" and "Both" or "Progression"
 	end
+
+	local hideouts = ix.plugin.Get("hideouts")
+	if hideouts then hideouts:RequestUpgradeItems() end
 end
 
 function PANEL:GetPadding(index)
@@ -635,6 +640,11 @@ function PANEL:SetInventory(inventory, bFitParent)
 									addRequirementContacts(tooltip, "Progression",
 										self.highlightContacts.Progression[item.uniqueID], purpleCol)
 								end
+							end
+							local hideouts = ix.plugin.Get("hideouts")
+							local upgradeHideouts = hideouts and hideouts:GetUpgradeItemHideouts(item.uniqueID)
+							if upgradeHideouts then
+								addRequirementContacts(tooltip, "Hideout", upgradeHideouts, greenCol)
 							end
 							tooltip:SizeToContents()
 						end)

@@ -44,11 +44,17 @@ local function add(rows, id, label, kind, value, signed, duration)
 
 	local text = label .. ": " .. ix.itemProperties.Format(kind, value, signed)
 	if duration then text = text .. " for " .. ix.itemProperties.Format("duration", duration) end
-	rows[#rows + 1] = {id = id, text = text}
+	local row = {id = id, text = text}
+	rows[#rows + 1] = row
+
+	return row
 end
 
 local function addText(rows, id, text)
-	rows[#rows + 1] = {id = id, text = text}
+	local row = {id = id, text = text}
+	rows[#rows + 1] = row
+
+	return row
 end
 
 function ix.itemProperties.GetProtection(item)
@@ -56,11 +62,15 @@ function ix.itemProperties.GetProtection(item)
 	local function protection(id, label, reduction, flat)
 		if (reduction == nil or reduction == 0) and (flat == nil or flat == 0) then return end
 
-		local text = label .. ": " .. ix.itemProperties.Format(id, reduction or 0)
+		reduction = reduction or 0
+		local valueText = ix.itemProperties.Format(id, reduction)
 		if flat ~= nil then
-			text = text .. "; absorption " .. ix.itemProperties.Format("number", flat)
+			valueText = valueText .. " + " .. ix.itemProperties.Format("number", math.Round(flat, 1))
 		end
-		rows[#rows + 1] = {id = "protection/" .. id, text = text}
+		rows[#rows + 1] = {
+			id = "protection/" .. id, text = label .. ": " .. valueText,
+			label = label .. ":", valueText = valueText, value = reduction,
+		}
 	end
 	if item.getBR then
 		local function reduction(method, field)
@@ -70,21 +80,24 @@ function ix.itemProperties.GetProtection(item)
 
 			return item.isBodyArmor and 1 - value or value
 		end
-		protection("ballistics", "Ballistics", reduction("getBR"))
-		protection("rupture", "Rupture", reduction("getSR"))
+		protection("ballistics", "Ballistics", reduction("getBR"), item:getFBR())
+		protection("rupture", "Rupture", reduction("getSR"), item:getFSR())
 		if item.isBodyArmor then
 			for _, definition in ipairs(ix.suits.anomalyTypes) do
-				protection(definition.network, definition.name, reduction("getAR", definition.field))
+				protection(definition.network, definition.name, reduction("getAR", definition.field),
+					item:getFAR(definition.flatField))
 			end
 		else
 			-- Installed headgear uses its broad anomaly resistance for each damage family.
+			local scale = item:GetDurabilityScale()
 			for _, definition in ipairs(ix.suits.anomalyTypes) do
 				local value = item[definition.field]
-				local scale = item:GetDurabilityScale()
-				protection(definition.network, definition.name, value and value * scale or item:getAR())
+				local flat = item[definition.flatField]
+				protection(definition.network, definition.name, value and value * scale or item:getAR(),
+					flat and flat * scale or item:getFAR())
 			end
 		end
-		protection("psychic", "Psychic", reduction("getPR"))
+		protection("psychic", "Psychic", reduction("getPR"), item:getFPR())
 		protection("radiation", "Radiation", item:getRadProt())
 	elseif item.attachName and ix.armortables and ix.armortables.attachments[item.attachName] then
 		local attachment = ix.armortables.attachments[item.attachName]
@@ -115,6 +128,41 @@ local EFFECTS = {
 	buff_hijump = {"Jump boost", "jumpSpeed", 1},
 }
 
+-- Client icon keys for effect rows, whose row IDs are positional.
+local EFFECT_ICONS = {
+	buff_slowheal = "effect/healing",
+	buff_rapidheal = "effect/healing",
+	buff_staminarestore = "effect/stamina",
+	buff_radiationremoval = "effect/radiationRemoval",
+	debuff_radiation = "effect/radiationExposure",
+	buff_psyheal = "effect/psychicRecovery",
+	debuff_psy = "effect/psychicDamage",
+	buff_psyblock = "effect/psychicRecovery",
+	buff_psysuppress = "effect/psychicRecovery",
+	buff_meditation = "effect/psychicRecovery",
+	buff_hijump = "effect/movement",
+	buff_sprintboost = "effect/movement",
+	debuff_psypillmovement = "effect/movementImpairment",
+}
+
+-- CW 2.0 fire mode keys grouped by firing style; a weapon is shown by its fastest available group.
+local FIRE_MODE_GROUPS = {
+	auto = "auto", ["2burst"] = "burst", ["3burst"] = "burst", semi = "semi",
+	pump = "pump", double = "break", ["break"] = "break", bolt = "bolt",
+}
+local FIRE_MODE_PRIORITY = {"auto", "burst", "semi", "pump", "break", "bolt"}
+
+function ix.itemProperties.GetFireModeGroup(weapon)
+	local available = {}
+	for _, mode in ipairs(weapon.FireModes or {}) do
+		local group = FIRE_MODE_GROUPS[mode]
+		if group then available[group] = true end
+	end
+	for _, group in ipairs(FIRE_MODE_PRIORITY) do
+		if available[group] then return group end
+	end
+end
+
 function ix.itemProperties.GetEffects(item)
 	local rows = {}
 	local effects = item.GetPropertyEffects and item:GetPropertyEffects() or {}
@@ -140,6 +188,8 @@ function ix.itemProperties.GetEffects(item)
 		elseif effect.buff == "buff_meditation" then
 			addText(rows, id, "Meditation while stationary")
 		end
+		local row = rows[#rows]
+		if row and row.id == id then row.icon = EFFECT_ICONS[effect.buff] end
 	end
 
 	return rows
@@ -148,10 +198,10 @@ end
 function ix.itemProperties.GetFilterRows(item)
 	local rows = {}
 	if not item.filterType and not item.isGasmaskFilter then return rows end
-	local definition = item.isGasmaskFilter and item or ix.item.list["gasmask_filter_" .. item.filterType]
+	local definition = item.isGasmaskFilter and item or ix.item.list[ix.util.GetInstalledFilterID(item)]
 	local condition = item.isGasmaskFilter and item:GetData("filterCondition", 100)
 		or item:GetFilterCondition()
-	local label = item.isAirTank and "Air tank" or definition.name
+	local label = definition.name
 	if condition == false then
 		addText(rows, "filter", label .. ": No filter")
 	else
@@ -247,7 +297,8 @@ function ix.itemProperties.GetRows(item)
 				local delay = weapon.FireDelay or primary.Delay
 				local rpm = primary.RPM or (delay and delay > 0 and 60 / delay)
 				if rpm then
-					addText(rows, "fireRate", "Cyclic rate: " .. ix.itemProperties.Format("number", rpm) .. " rpm")
+					local text = "Cyclic rate: " .. ix.itemProperties.Format("number", rpm) .. " rpm"
+					addText(rows, "fireRate", text).variant = ix.itemProperties.GetFireModeGroup(weapon)
 				end
 			end
 		end

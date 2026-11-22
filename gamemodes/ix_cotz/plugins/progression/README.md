@@ -38,8 +38,9 @@ Paid repairs at Technut and Boss use `2 * round(missingCondition * price^(1/3))`
 masks, helmets and repairable weapons. Weapons read `wear`; suits and headgear read `durability`.
 The cloth mask alone sets `repairCostMultiplier = 1 / 3`, reducing its per-condition repair rate
 before rounding. Other masks and helmets keep the standard rate.
-Technut also offers separate air tank refills for NBC, SSP-99, SSP-99M and SEVA variants, using
-40 RU per missing percentage point of air, up to 4,000 RU, regardless of suit. Suit durability repairs leave air unchanged.
+Technut also offers separate filter refills for loose cartridges and gas tanks, mask filters and suit tanks,
+priced from the filter definition's `refillCost` per missing percentage (4,000 RU for an empty medium tank).
+See the [suits guide](../suits/README.md#filter-compatibility). Durability repairs leave filters unchanged.
 Weapon durability rebuilding and dismantling belong to the separate [weapon workshop](../weaponservice/README.md).
 Its component commissions share `QuoteService` and `ChargeService` with ordinary services, including
 earned discounts and provider-bound repair credits; cleaning continues to restore weapon `wear`.
@@ -168,8 +169,8 @@ individual contact prose. Run `luatex --luaonly tests/progression_dialogue_spec.
 
 Technut and Jitters accept provider-bound repeatable-job credits for repair and treatment respectively.
 Their contact reward profiles opt into credit use; other town contacts retain disabled credit balances.
-The existing service quotes and confirmations spend credit before charging cash. Balance caps remain
-20,000 repair / 5,000 treatment credits; jobsystem retains excess reward value as a recoverable offer.
+Jitters charges double the standard rate for health, radiation, and psy treatment, including combined care.
+Service credit balances have no cap. Service quotes and confirmations spend credit before charging cash.
 No new finite-progression credit rewards are introduced.
 
 ## Runtime and checks

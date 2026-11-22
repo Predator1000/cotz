@@ -12,7 +12,8 @@ local PLAYER_MEMORY_SECONDS = 10
 local PLAYER_CONTACT_INTERVAL = 0.25
 local PURSUIT_RETRY = 1
 local PURSUIT_ARRIVAL = 64
-local SPAWN_APPROACH_SECONDS = 10
+local APPROACH_SECONDS = 10
+local AIM_HITGROUPS = {HITGROUP_CHEST, HITGROUP_STOMACH}
 local TARGET_ABILITIES = {"isAttacking", "IsJumping", "IsLongJumping", "isBigJumping", "IsSuccing", "IsGrabbing"}
 local PREDATORS = {blinddog = true, pseudodog = true, psydog = true, cat = true, bloodsucker = true,
 	chimera = true, electrochimera = true, hellhound = true, spider = true, sprig = true}
@@ -28,6 +29,11 @@ local nextPackID = 0
 
 local function living(entity)
 	return IsValid(entity) and entity:Health() > 0 and entity.IsAlive ~= false and not entity.cotzPopulationRejected
+end
+
+-- ShouldCollide answers depend on combat registration; cached physics pairs must be refreshed.
+local function refreshCollisionRules(entity)
+	if IsValid(entity) then entity:CollisionRulesChanged() end
 end
 
 local function cellKey(position)
@@ -66,10 +72,13 @@ local function enemyAimPosition(enemy)
 	local hitboxSet = enemy:GetHitboxSet()
 	if hitboxSet == nil then return enemy:WorldSpaceCenter() end
 	local hitboxCount = enemy:GetHitBoxCount(hitboxSet) or 0
-	for hitbox = 0, hitboxCount - 1 do
-		if enemy:GetHitBoxHitGroup(hitbox, hitboxSet) == HITGROUP_CHEST then
-			local position = hitboxAimPosition(enemy, hitbox, hitboxSet)
-			if position then return position end
+	-- Many mutant skeletons tag their torso hitbox as stomach rather than chest.
+	for _, hitGroup in ipairs(AIM_HITGROUPS) do
+		for hitbox = 0, hitboxCount - 1 do
+			if enemy:GetHitBoxHitGroup(hitbox, hitboxSet) == hitGroup then
+				local position = hitboxAimPosition(enemy, hitbox, hitboxSet)
+				if position then return position end
+			end
 		end
 	end
 
@@ -128,7 +137,8 @@ function PLUGIN:RemoveCombatActor(entity)
 	entity.cotzCombatEnemy, entity.cotzCombatScheduleDirty = nil, nil
 	entity.cotzPursuitScheduled, entity.cotzNextPursuit = nil, nil
 	entity.cotzCombatObjective, entity.cotzCombatObjectiveRadius = nil, nil
-	entity.cotzSpawnApproach, entity.cotzSpawnApproachUntil = nil, nil
+	entity.cotzCombatApproach, entity.cotzCombatApproachUntil, entity.cotzCombatApproachPlayer = nil, nil, nil
+	refreshCollisionRules(entity)
 end
 
 function PLUGIN:RegisterCombatActor(entity, pack)
@@ -155,6 +165,7 @@ function PLUGIN:RegisterCombatActor(entity, pack)
 		entity:SetSquad("cotz/encounter/" .. pack.id .. "/" .. (entity.cotzFaction or "human"))
 	end
 	self:UpdateCombatCell(entity)
+	refreshCollisionRules(entity)
 end
 
 function PLUGIN:UpdateCombatCell(entity)
@@ -193,10 +204,21 @@ function PLUGIN:ActorsHostile(first, second)
 	if firstPack and firstPack == secondPack then return false end
 	if (firstPack and firstPack.isolated) or (secondPack and secondPack.isolated) then return false end
 	if first.cotzFaction and second.cotzFaction then return first.cotzFaction ~= second.cotzFaction end
-	if first.cotzFaction or second.cotzFaction then return true end
+	-- Undead side with mutants; only living human factions treat mutants as enemies.
+	local faction = first.cotzFaction or second.cotzFaction
+	if faction then return faction ~= "undead" end
 	if first.cotzSpecies == second.cotzSpecies then return false end
 
 	return firstPack ~= nil and firstPack.opponent == secondPack and CurTime() < firstPack.conflictUntil
+end
+
+-- STALKER NPCs pass through each other so groups do not get stuck, but bullet traces use the same
+-- collision rules, so hostile pairs that include a human gunman must stay solid. Mutant-only pairs keep
+-- passing through: their timed species conflicts would make the answer change without a rules refresh.
+function PLUGIN:ActorsBlockEachOther(first, second)
+	if not first.cotzHuman and not second.cotzHuman then return false end
+
+	return self:ActorsHostile(first, second)
 end
 
 function PLUGIN:ActorsAllied(first, second)
@@ -207,10 +229,10 @@ function PLUGIN:ActorsAllied(first, second)
 	return first.cotzSpecies == second.cotzSpecies
 end
 
-function PLUGIN:CanActorAttack(actor, target)
-	if not living(actor) or actor.cotzSleeping or not IsValid(target) or target == actor then return false end
-	if self:IsCombatActor(target) then
-		return living(target) and not target.cotzSleeping and self:ActorsHostile(actor, target)
+local function canDamageTarget(controller, actor, target)
+	if not IsValid(target) or target == actor then return false end
+	if controller:IsCombatActor(target) then
+		return living(target) and not target.cotzSleeping and controller:ActorsHostile(actor, target)
 	end
 	if target:IsPlayer() then
 		return target:Alive() and GetConVar("ai_ignoreplayers"):GetInt() == 0
@@ -218,6 +240,12 @@ function PLUGIN:CanActorAttack(actor, target)
 	end
 
 	return true
+end
+
+function PLUGIN:CanActorAttack(actor, target)
+	if not living(actor) or actor.cotzSleeping then return false end
+
+	return canDamageTarget(self, actor, target)
 end
 
 function PLUGIN:ClearCombatPlayerFocus(actor)
@@ -310,9 +338,14 @@ function PLUGIN:ValidateCombatEnemy(actor)
 	end
 end
 
-function PLUGIN:SetCombatSpawnApproach(actor, position)
-	actor.cotzSpawnApproach = position
-	actor.cotzSpawnApproachUntil = CurTime() + SPAWN_APPROACH_SECONDS
+-- Moves an idle actor toward a reported position without assigning an enemy, so its own sight and
+-- retaliation decide whom it engages on the way.
+function PLUGIN:SetCombatApproach(actor, position, towardPlayer)
+	actor.cotzCombatApproach = position
+	actor.cotzCombatApproachUntil = CurTime() + APPROACH_SECONDS
+	actor.cotzCombatApproachPlayer = towardPlayer or nil
+	actor.cotzRegrouping = nil
+	actor.cotzNextEnemySearch, actor.cotzNextHumanSearch = 0, 0
 end
 
 function PLUGIN:UpdateCombatSchedule(actor)
@@ -320,12 +353,12 @@ function PLUGIN:UpdateCombatSchedule(actor)
 	if targetBusy(actor) then return end
 	if actor.cotzNavigationRecovery or actor.cotzNavigationRetreat then return true end
 
-	local approach = actor.cotzSpawnApproach
+	local approach = actor.cotzCombatApproach
 	local hasEnemy = IsValid(actor:GetEnemy())
-	if approach and (hasEnemy or CurTime() >= actor.cotzSpawnApproachUntil
-		or GetConVar("ai_ignoreplayers"):GetInt() ~= 0
+	if approach and (hasEnemy or CurTime() >= actor.cotzCombatApproachUntil
+		or (actor.cotzCombatApproachPlayer and GetConVar("ai_ignoreplayers"):GetInt() ~= 0)
 		or actor:GetPos():DistToSqr(approach) <= PURSUIT_ARRIVAL ^ 2) then
-		actor.cotzSpawnApproach, actor.cotzSpawnApproachUntil = nil, nil
+		actor.cotzCombatApproach, actor.cotzCombatApproachUntil, actor.cotzCombatApproachPlayer = nil, nil, nil
 		if actor.cotzPursuitScheduled then actor.cotzCombatScheduleDirty = true end
 		approach = nil
 	end
@@ -497,11 +530,15 @@ function PLUGIN:FindCombatEnemy(actor, range, halfAngle, budgetTaken)
 end
 
 function PLUGIN:ShareCombatThreat(actor, target)
+	local towardPlayer = target:IsPlayer()
+	-- Share only what the alerting actor observed, never a hidden player's current position.
+	local position = towardPlayer and actor.cotzPlayerPosition or target:GetPos()
+	if not position then return end
 	for _, ally in ipairs(self:NearbyCombatActors(actor:GetPos(), AMBIENT_RANGE)) do
 		if ally ~= actor and not ally.cotzSleeping and self:ActorsAllied(actor, ally)
-			and self:CanActorAttack(ally, target) and not IsValid(ally:GetEnemy()) then
-			local position = target:IsPlayer() and actor.cotzPlayerPosition or nil
-			self:SetCombatTarget(ally, target, position, actor.cotzPlayerContact)
+			and self:CanActorAttack(ally, target) and not IsValid(ally:GetEnemy())
+			and not self:GetCombatPlayerFocus(ally) then
+			self:SetCombatApproach(ally, position, towardPlayer)
 		end
 	end
 end
@@ -535,14 +572,14 @@ function PLUGIN:UpdateAmbientPack(pack, leader)
 	if GetConVar("ai_disabled"):GetInt() ~= 0 then return end
 	if pack.isolated or pack.opponent or CurTime() < pack.nextAmbient then return end
 	pack.nextAmbient = CurTime() + AMBIENT_INTERVAL
-	if not leader or leader.cotzHuman or leader.cotzSleeping or CurTime() < pack.cooldown then return end
+	if not leader or leader.cotzFaction or leader.cotzSleeping or CurTime() < pack.cooldown then return end
 	if self:GetCombatPlayerFocus(leader) or IsValid(leader:GetEnemy()) or targetBusy(leader) then return end
 	if not self:TakeSearchBudget() then pack.nextAmbient = CurTime() + 1 return end
 	local prey, rival
 	for _, other in ipairs(self:NearbyCombatActors(leader:GetPos(), AMBIENT_RANGE)) do
 		local otherPack = other.cotzCombatPack
 		if otherPack ~= pack and not otherPack.isolated and not otherPack.opponent and not other.cotzSleeping
-			and not other.cotzHuman and other.cotzSpecies ~= leader.cotzSpecies
+			and not other.cotzFaction and other.cotzSpecies ~= leader.cotzSpecies
 			and not self:ActorsAllied(leader, other)
 			and CurTime() >= otherPack.cooldown and leader:Visible(other) then
 			rival = rival or other
@@ -561,7 +598,10 @@ end
 function PLUGIN:RegroupCombatActor(actor, leader)
 	if GetConVar("ai_disabled"):GetInt() ~= 0 then return end
 	if not actor.cotzHuman or actor.cotzSleeping or actor.cotzCombatPack.isolated or not leader
-		or leader.cotzSleeping or IsValid(actor:GetEnemy()) then actor.cotzRegrouping = nil return end
+		or leader.cotzSleeping or IsValid(actor:GetEnemy()) or actor.cotzCombatApproach then
+		actor.cotzRegrouping = nil
+		return
+	end
 	if (actor.cotzNextRegroup or 0) > CurTime() then return end
 	actor.cotzNextRegroup = CurTime() + 1
 	local origin = actor.cotzCombatPack.origin
@@ -649,6 +689,9 @@ function PLUGIN:AllowCombatDamage(victim, damage)
 	if not attacker then return true end
 	self:RegisterCombatActor(attacker)
 	if self:IsCombatActor(victim) then self:RegisterCombatActor(victim) end
+	-- Direct damage from a mutant's death callback keeps the normal target checks.
+	if attacker.cotzApplyingDeathEffect and damage:GetAttacker() == attacker and damage:GetInflictor() == attacker
+		and canDamageTarget(self, attacker, victim) then return true end
 	if self:CanActorAttack(attacker, victim) then return true end
 	damage:SetDamage(0)
 

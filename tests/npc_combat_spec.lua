@@ -1,4 +1,6 @@
 -- Run from the addon root: luatex --luaonly tests/npc_combat_spec.lua
+-- Engine constants exist before plugin files load; sv_combat.lua captures them at file scope.
+HITGROUP_GENERIC, HITGROUP_HEAD, HITGROUP_CHEST, HITGROUP_STOMACH, HITGROUP_LEFTLEG = 0, 1, 2, 3, 6
 local fixture = dofile("tests/population_performance_spec.lua")
 local manager = fixture.manager
 PLUGIN, ix.eventController = manager, manager
@@ -27,7 +29,6 @@ end
 function vectorMeta:Angle() return {y = math.deg(math.atan(self.y, self.x))} end
 math.NormalizeAngle = function(value) return (value + 180) % 360 - 180 end
 D_HT, D_LI, D_NU = 1, 3, 4
-HITGROUP_GENERIC, HITGROUP_HEAD, HITGROUP_CHEST = 0, 1, 2
 MOVETYPE_OBSERVER, MOVETYPE_NOCLIP, SCHED_FORCED_GO_RUN = 10, 8, 200
 GetConVar = function() return {GetInt = function() return 0 end} end
 local function hitboxData(entity, hitbox, hitboxSet)
@@ -94,6 +95,21 @@ local zombie = actor("npc_mutant_classiczombie", 1300)
 zombie.cotzSpecies, zombie.cotzFaction = "zombie", "undead"
 local zombified = actor("npc_human_z_merc_rifleman", 1400)
 local lowMutant = actor("npc_mutant_dog", 500)
+check(manager:ActorsBlockEachOther(bandit, lowMutant) and manager:ActorsBlockEachOther(lowMutant, bandit),
+	"living gunmen and hostile mutants collide so bullet traces can hit")
+check(manager:ActorsBlockEachOther(bandit, merc), "rival human factions collide so their bullets hit")
+check(not manager:ActorsBlockEachOther(bandit, ally) and not manager:ActorsBlockEachOther(bandit, otherBandit),
+	"faction allies keep passing through each other")
+check(not manager:ActorsBlockEachOther(zombified, lowMutant) and not manager:ActorsBlockEachOther(zombie, lowMutant),
+	"undead and mutants share a side and pass through each other")
+check(manager:ActorsBlockEachOther(zombified, bandit), "zombified gunmen collide with living factions")
+check(not manager:ActorsBlockEachOther(zombie, actor("npc_mutant_boar", 1500)),
+	"mutant-only pairs keep passing through regardless of timed species conflicts")
+check((lowMutant.collisionRefreshes or 0) > 0, "registering a combat actor refreshes cached collision rules")
+local refreshesBeforeRemoval = lowMutant.collisionRefreshes
+manager:RemoveCombatActor(lowMutant)
+check(lowMutant.collisionRefreshes == refreshesBeforeRemoval + 1, "removing a combat actor refreshes collision rules")
+manager:RegisterCombatActor(lowMutant)
 lowMutant.WorldSpaceCenter = function() return Vector(500, 0, 12) end
 bandit.enemy = lowMutant
 local spread = Vector(0.1, 0.1, 0)
@@ -159,6 +175,17 @@ do
 	}}
 	lowMutant.boneMatrices = {[0] = aimMatrix(Vector(500, 0, 14))}
 	aimsAt(bandit, lowMutant, Vector(500, 0, 10), "mutants without a chest group use an actual hitbox center")
+	lowMutant.hitboxSets[0] = {
+		count = 3,
+		[0] = {group = HITGROUP_LEFTLEG, bone = 0, mins = Vector(-2, -2, -2), maxs = Vector(2, 2, 2)},
+		[1] = {group = HITGROUP_STOMACH, bone = 1, mins = Vector(-8, -4, -4), maxs = Vector(8, 4, 4)},
+		[2] = {group = HITGROUP_HEAD, bone = 2, mins = Vector(-3, -3, -3), maxs = Vector(3, 3, 3)},
+	}
+	lowMutant.boneMatrices = {[0] = aimMatrix(Vector(500, 0, 1)), [1] = aimMatrix(Vector(500, 0, 23)),
+		[2] = aimMatrix(Vector(520, 0, 35))}
+	aimsAt(bandit, lowMutant, Vector(500, 0, 23), "mutants with a stomach-tagged torso are aimed at the torso, not a paw")
+	lowMutant.hitboxSets[0][0].group = HITGROUP_CHEST
+	aimsAt(bandit, lowMutant, Vector(500, 0, 1), "a chest hitbox still takes priority over the stomach")
 	local client = {
 		Health = function() return 100 end,
 		IsNPC = function() return false end,
@@ -232,6 +259,19 @@ lowMutant.removed = true
 bandit.enemy = nil
 check(manager:ActorsAllied(zombified, zombie) and manager:CanActorAttack(zombified, merc),
 	"zombified humans ally with undead rather than their former faction")
+local controller = actor("npc_mutant_controller", 1350)
+check(not manager:ActorsHostile(zombie, controller) and not manager:CanActorAttack(zombie, controller)
+	and not manager:CanActorAttack(controller, zombie) and not manager:CanActorAttack(zombified, controller),
+	"undead never fight mutants from other packs")
+check(manager:CanActorAttack(zombie, merc) and manager:CanActorAttack(merc, zombie),
+	"undead remain hostile to living human factions")
+manager:SetCombatRelationship(controller, zombie)
+check(controller.relationships[zombie] == D_LI, "mutants treat undead as friendly in engine targeting")
+local mutantDamage = {amount = 20, GetAttacker = function() return controller end, GetInflictor = function() end,
+	SetDamage = function(self, value) self.amount = value end}
+check(not manager:AllowCombatDamage(zombie, mutantDamage), "mutant damage cannot hurt undead")
+manager:RemoveCombatActor(controller)
+controller.removed = true
 merc.cotzSleeping = true
 check(not manager:CanActorAttack(bandit, merc) and not manager:CanActorAttack(merc, bandit),
 	"both attacker and NPC target must be awake")
@@ -253,12 +293,35 @@ check(manager:GetCombatDamageActor(damage) == bandit and not manager:AllowCombat
 	"weapon-owned damage obeys faction policy")
 local player = {GetPos = function() return Vector(4000) end, IsNPC = function() return false end,
 	IsPlayer = function() return true end, Alive = function() return true end, GetMoveType = function() return 0 end}
+local deathDamage = {
+	amount = 20,
+	GetAttacker = function() return zombie end,
+	GetInflictor = function() return zombie end,
+	SetDamage = damage.SetDamage,
+}
+zombie.health, zombie.IsAlive = 0, false
+check(not manager:AllowCombatDamage(player, deathDamage) and deathDamage.amount == 0,
+	"dead mutants cannot deal ordinary damage")
+zombie.cotzApplyingDeathEffect = true
+deathDamage.amount = 20
+check(manager:AllowCombatDamage(player, deathDamage) and deathDamage.amount == 20,
+	"direct mutant death effects can damage living players")
+check(manager:AllowCombatDamage(merc, deathDamage), "direct mutant death effects can damage hostile NPCs")
+check(not manager:AllowCombatDamage(zombified, deathDamage), "mutant death effects still protect allied NPCs")
+check(not manager:CanActorAttack(zombie, player), "death effects do not let dead mutants select targets")
+deathDamage.GetInflictor = function() return weapon end
+check(not manager:AllowCombatDamage(player, deathDamage), "indirect damage still requires a living mutant")
+zombie.cotzApplyingDeathEffect = nil
+deathDamage.GetInflictor = deathDamage.GetAttacker
+check(not manager:AllowCombatDamage(player, deathDamage), "death effect damage is limited to the callback")
+zombie.health, zombie.IsAlive = 100, true
 fixture.SetPlayers({player})
 fixture.SetTime(fixture.GetTime() + 1)
 manager:UpdateCombatActors()
 check(not bandit.cotzSleeping and not merc.cotzSleeping, "player proximity activates both factions")
 manager:FindCombatEnemy(bandit, 1500, 90, true)
-check(bandit.enemy == merc and ally.enemy == merc, "visible rival acquisition alerts nearby faction allies")
+check(bandit.enemy == merc and not ally.enemy and ally.cotzCombatApproach.x == 1100,
+	"visible rival acquisition sends nearby faction allies toward the rival without assigning it")
 merc.hidden, military.hidden, zombie.hidden, zombified.hidden = true, true, true, true
 bandit.enemy = nil
 manager:FindCombatEnemy(bandit, 1500, 90, true)
@@ -537,27 +600,28 @@ local alertAlly = actor("npc_mutant_dog", 100, huntingDog.cotzCombatPack)
 alertAlly.cotzSpecies = "blinddog"
 huntingDog.enemy = nil
 manager:ShareCombatThreat(alertAlly, huntingPrey)
-check(not huntingDog.enemy and huntingDog.cotzPlayerFocus == huntingPlayer,
+check(not huntingDog.enemy and not huntingDog.cotzCombatApproach and huntingDog.cotzPlayerFocus == huntingPlayer,
 	"squad alerts cannot replace remembered player focus after engine target loss")
 manager:ValidateCombatEnemy(huntingDog)
 manager:ShareCombatThreat(huntingDog, huntingPlayer)
-check(alertAlly.enemy == huntingPlayer and alertAlly.cotzPlayerPosition == huntingDog.cotzPlayerPosition,
-	"squad player alerts carry an observed position")
-local sharedContact = alertAlly.cotzPlayerContact
+check(not alertAlly.enemy and not alertAlly.cotzPlayerFocus
+	and alertAlly.cotzCombatApproach == huntingDog.cotzPlayerPosition,
+	"squad player alerts send allies to the observed position without assigning the player")
 huntingPlayer.hidden, huntingPlayer.position = true, Vector(900)
 advance(2)
-alertAlly.enemy = nil
 manager:ShareCombatThreat(huntingDog, huntingPlayer)
-check(alertAlly.cotzPlayerContact == sharedContact and alertAlly.cotzPlayerPosition.x == 300,
-	"repeated squad alerts cannot refresh stale contact or reveal hidden movement")
-manager:RetaliateCombatActor(alertAlly, huntingPlayer)
-local newerContact, newerPosition = alertAlly.cotzPlayerContact, alertAlly.cotzPlayerPosition
-alertAlly.enemy = nil
-manager:ShareCombatThreat(huntingDog, huntingPlayer)
-check(alertAlly.cotzPlayerContact == newerContact and alertAlly.cotzPlayerPosition == newerPosition,
-	"stale squad alerts cannot overwrite an ally's more recent contact")
+check(alertAlly.cotzCombatApproach.x == 300, "repeated squad alerts cannot reveal hidden movement")
+manager:UpdateCombatSchedule(alertAlly)
+check(alertAlly.schedule == SCHED_FORCED_GO_RUN and alertAlly.destination.x == 300,
+	"alerted allies run toward the reported position")
+local alertRival = actor("npc_human_merc_rifleman", 150)
+manager:FindCombatEnemy(alertAlly, 1500, 90, true)
+check(alertAlly.enemy == alertRival and manager:UpdateCombatSchedule(alertAlly) == nil
+	and not alertAlly.cotzCombatApproach and not alertAlly.schedule,
+	"alerted allies engage a different target spotted on the way")
+manager:RemoveCombatActor(alertRival)
 manager:RemoveCombatActor(alertAlly)
-check(not alertAlly.cotzPlayerFocus and not alertAlly.cotzCombatScheduleDirty,
+check(not alertAlly.cotzPlayerFocus and not alertAlly.cotzCombatScheduleDirty and not alertAlly.cotzCombatApproach,
 	"actor removal clears player memory and queued schedule work")
 
 local function loadEntityMethod(path, method)
@@ -581,7 +645,7 @@ do
 	local initialDefender, visibleDefender = targetPlayer(500), targetPlayer(700)
 	initialDefender.hidden = true
 	fixture.SetPlayers({initialDefender})
-	manager:SetCombatSpawnApproach(mutant, initialDefender:GetPos())
+	manager:SetCombatApproach(mutant, initialDefender:GetPos())
 	initialDefender.position = Vector(900)
 	manager:FindCombatEnemy(mutant, 1500, 90, true)
 	manager:UpdateCombatSchedule(mutant)
@@ -593,20 +657,20 @@ do
 	advance(1)
 	manager:FindCombatEnemy(mutant, 1500, 90, true)
 	check(manager:UpdateCombatSchedule(mutant) == nil and mutant.enemy == visibleDefender
-		and not mutant.cotzSpawnApproach and not mutant.schedule,
+		and not mutant.cotzCombatApproach and not mutant.schedule,
 		"normal sight-based acquisition cancels the spawn approach for a different defender")
 
 	local idleMutant = actor("npc_mutant_dog", 0)
-	manager:SetCombatSpawnApproach(idleMutant, Vector(500))
+	manager:SetCombatApproach(idleMutant, Vector(500))
 	manager:UpdateCombatSchedule(idleMutant)
 	idleMutant.position = Vector(490)
 	check(manager:UpdateCombatSchedule(idleMutant) == nil and not idleMutant.schedule
-		and not idleMutant.cotzSpawnApproach, "arrival releases movement to normal AI")
-	manager:SetCombatSpawnApproach(idleMutant, Vector(1000))
+		and not idleMutant.cotzCombatApproach, "arrival releases movement to normal AI")
+	manager:SetCombatApproach(idleMutant, Vector(1000))
 	manager:UpdateCombatSchedule(idleMutant)
 	advance(10)
 	check(manager:UpdateCombatSchedule(idleMutant) == nil and not idleMutant.schedule
-		and not idleMutant.cotzSpawnApproach, "an unfinished approach expires")
+		and not idleMutant.cotzCombatApproach, "an unfinished approach expires")
 end
 
 do

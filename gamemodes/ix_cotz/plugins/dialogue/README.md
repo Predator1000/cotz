@@ -14,6 +14,11 @@ Ordinary dialogue, flavour and service responses stay in the conversation file. 
 ix.dialogue.AddTradeTopic from integrations/sh_trade.lua; it does not copy another NPC's tree.
 Task prompts, briefings and completion text stay beside the contact's jobs/progression definitions.
 
+`integrations/sh_hideoutupgrades.lua` gives Ballast, Cleaner and Ledger **I want to improve my hideout.** on
+their own map. Its three dynamic topics (hideout list, upgrade list, confirmation) render snapshots that the
+[hideouts plugin](../hideouts/README.md#upgrading-at-the-contact) sends; the server validates and applies
+every purchase.
+
 `integrations/sh_mutantdefense.lua` adds trader supply hand-in and stored defense reward collection to
 trade conversations when the [mutant defense plugin](../mutantdefense/README.md) is enabled. Both are quick
 actions with empty responses, preserving silent NPCs and current navigation. Server callbacks validate vendor
@@ -136,9 +141,11 @@ the reward resolver declare their service category. Static and dynamic options b
 mouseover while preserving their category tint.
 
 Trading and Technut's customization window open without replacing the current dialogue choices.
-Escape cancels the foremost related window or returns through the dialogue's back choice; at the
-root it says goodbye. Holding Escape for one second closes the entire interaction. Shared COTZ
-frames opened during dialogue participate in this navigation, including confirmation cancellation.
+Escape or Tab cancels the foremost related window or returns through the dialogue's back choice; at
+the root it says goodbye. Holding either key for one second closes the entire interaction. Tab is
+ignored while a text entry has focus. The same close stack also serves popups outside dialogue:
+`ix.cotzUI.TrackClosable(panel, cancel)` registers shared COTZ frames and prompts, the storage view,
+and stock `Derma_Query`/`Derma_StringRequest` prompts, including confirmation cancellation.
 The Escape handler remains at the original Garry's Mod hook stage after Helix plugin dispatch.
 
 Repeatable task acceptance reveals no reward choices. Once the objective is complete, the issuing

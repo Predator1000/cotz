@@ -26,10 +26,14 @@ their raw Source-unit values, without conversion to metres.
   reading small enough to round to zero displays zero. Cleanliness appears before durability.
 - `GetRows(item)`, `GetProtection(item)`, `GetFilterRows(item)` and `GetEffects(item)` return ordered
   `{id, text}` rows without constructing panels or invoking gameplay callbacks.
-- `AddRow(tooltip, id, text)`, `PopulateProtection(tooltip, item)` and `Populate(tooltip, item)`
-  render converted rows through `ix.util.PropertyDesc`, without image icons. Its optional fourth
-  argument supplies a semantic row ID; repeated rows update the existing row and children.
-  Weight and carry capacity retain their original image icons through `PropertyDesc2`.
+- `AddRow(tooltip, id, text, iconKey, variant)`, `PopulateProtection(tooltip, item)` and
+  `Populate(tooltip, item)` render converted rows. Readings with an entry in the client `ICONS` table
+  (keyed by row ID, or by a row's optional `icon` key) use a tinted greyscale icon from
+  `vgui/ui/stalker/*_grey` through `PropertyDesc2`; other readings keep the `PropertyDesc` bullet.
+  Their optional fourth argument supplies a semantic row ID; repeated rows update the existing row and children.
+  Effect rows carry an `icon` key for their buff. The cyclic-rate row carries a `variant` from
+  `GetFireModeGroup(weapon)`, the fastest CW 2.0 fire mode group (auto, burst, semi, pump, break, bolt),
+  which selects the firerate icon's tint.
   Property labels use explicit Helix word wrapping and size each row from the measured lines,
   including resetting its height when text becomes shorter. Full population runs once per tooltip. World-item tooltips keep legacy weight and existing item
   modifiers, without evaluating or adding converted nutrition, hydration, effects or protection rows.
@@ -81,10 +85,11 @@ For example, a 2 HP tick at 200 maximum HP reads `+1% per 1 second over 300 seco
 readers account for their actual callback interval. Durations describe the effect after application, separately from application time.
 
 Protection readings show each effective resistance fraction as a whole-number percentage, without
-cosmetic unit conversion. Gear and suit property rows omit flat absorption; their gameplay calculations
-and the equipment summary remain unchanged. Psychic shielding from `buff_psyblock` is flat absorption
-and shows its raw amount. Attachment property rows can still show their raw flat absorption points.
-Zero protection rows are omitted; adverse protection remains visible.
+cosmetic unit conversion, followed by flat absorption rounded to one decimal (for example
+`Ballistics: 40% + 8`). Radiation has no flat absorption reading. The value is coloured on the legacy
+scale from red (0%) to blue (100%), with full saturation outside that range. Psychic shielding from
+`buff_psyblock` is flat absorption and shows its raw amount. Attachment rows show flat absorption only
+when the attachment defines it. Zero protection rows are omitted; adverse protection remains visible.
 
 Examples: Bread restores 9 hunger and reads **+90 kcal** per portion. Old antirad removes a nominal
 50 radiation points in 120 seconds and reads **−125 mSv/s for 120 s**. Gauze supplies 20 additional

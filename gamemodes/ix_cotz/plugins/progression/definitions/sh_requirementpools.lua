@@ -5066,6 +5066,14 @@ ix.progression.itemPools.town_expansion_64a8e2e09127 = {
 	},
 }
 
+ix.progression.itemPools.town_expansion_280bb8599be5 = {
+	name = "Reloading components and ammunition storage: general supplies (Swamps, Garbage)",
+	tier = "common",
+	candidates = {
+		{item = "value_gunoil"},
+	},
+}
+
 ix.progression.itemPools.town_expansion_dc0d9e9b2d00 = {
 	name = "Reloading components and ammunition storage: general supplies (Swamps, Garbage)",
 	tier = "common",
@@ -5078,14 +5086,6 @@ ix.progression.itemPools.town_expansion_dc0d9e9b2d00 = {
 		{item = "value_gunpowder_red"},
 		{item = "value_gunspray"},
 		{item = "value_lubricant"},
-	},
-}
-
-ix.progression.itemPools.town_expansion_280bb8599be5 = {
-	name = "Reloading components and ammunition storage: general supplies (Swamps, Garbage)",
-	tier = "common",
-	candidates = {
-		{item = "value_gunoil"},
 	},
 }
 
@@ -5116,19 +5116,6 @@ ix.progression.itemPools.town_expansion_e5d6c53061f3 = {
 	},
 }
 
-ix.progression.itemPools.town_expansion_85f15f41a5ef = {
-	name = "Reloading components and ammunition storage: general supplies (Swamps, Garbage)",
-	tier = "common",
-	candidates = {
-		{item = "value_guncleaner"},
-		{item = "value_gunpowder_blue"},
-		{item = "value_gunpowder_green"},
-		{item = "value_gunpowder_red"},
-		{item = "value_gunspray"},
-		{item = "value_lubricant"},
-	},
-}
-
 ix.progression.itemPools.town_expansion_7be8fdb53f87 = {
 	name = "Reloading components and ammunition storage: general supplies (Swamps, Garbage)",
 	tier = "common",
@@ -5144,15 +5131,11 @@ ix.progression.itemPools.town_expansion_7be8fdb53f87 = {
 	},
 }
 
-ix.progression.itemPools.town_expansion_b831b88bf8a7 = {
-	name = "Reloading components and ammunition storage: general supplies (Swamps, Garbage, Waystation)",
+ix.progression.itemPools.town_expansion_85f15f41a5ef = {
+	name = "Reloading components and ammunition storage: general supplies (Swamps, Garbage)",
 	tier = "common",
 	candidates = {
-		{item = "value_container_ammo"},
-		{item = "value_container_parls"},
-		{item = "value_container_weaponcase"},
 		{item = "value_guncleaner"},
-		{item = "value_gunoil"},
 		{item = "value_gunpowder_blue"},
 		{item = "value_gunpowder_green"},
 		{item = "value_gunpowder_red"},
@@ -5170,6 +5153,23 @@ ix.progression.itemPools.town_expansion_90de7166a430 = {
 		{item = "value_gunpowder_blue"},
 		{item = "value_gunpowder_green"},
 		{item = "value_gunpowder_red"},
+		{item = "value_lubricant"},
+	},
+}
+
+ix.progression.itemPools.town_expansion_b831b88bf8a7 = {
+	name = "Reloading components and ammunition storage: general supplies (Swamps, Garbage, Waystation)",
+	tier = "common",
+	candidates = {
+		{item = "value_container_ammo"},
+		{item = "value_container_parls"},
+		{item = "value_container_weaponcase"},
+		{item = "value_guncleaner"},
+		{item = "value_gunoil"},
+		{item = "value_gunpowder_blue"},
+		{item = "value_gunpowder_green"},
+		{item = "value_gunpowder_red"},
+		{item = "value_gunspray"},
 		{item = "value_lubricant"},
 	},
 }
@@ -5250,6 +5250,18 @@ ix.progression.itemPools.town_expansion_df7b8b770885 = {
 	},
 }
 
+ix.progression.itemPools.town_expansion_5b31b14470db = {
+	name = "Reloading components and ammunition storage: supporting supplies (Swamps, Garbage, Waystation, Pripyat)",
+	tier = "common",
+	candidates = {
+		{item = "value_container_injectorcase"},
+		{item = "value_pipewrench"},
+		{item = "value_screwdriver"},
+		{item = "value_tools_screwdriver_flat"},
+		{item = "value_tools_screwdriver_flat_long"},
+	},
+}
+
 ix.progression.itemPools.town_expansion_2bcd5ac29800 = {
 	name = "Reloading components and ammunition storage: supporting supplies (Swamps, Garbage, Waystation, Pripyat)",
 	tier = "common",
@@ -5267,18 +5279,6 @@ ix.progression.itemPools.town_expansion_2bcd5ac29800 = {
 		{item = "value_tools_screwdriver_flat"},
 		{item = "value_tools_screwdriver_flat_long"},
 		{item = "value_wrench"},
-	},
-}
-
-ix.progression.itemPools.town_expansion_5b31b14470db = {
-	name = "Reloading components and ammunition storage: supporting supplies (Swamps, Garbage, Waystation, Pripyat)",
-	tier = "common",
-	candidates = {
-		{item = "value_container_injectorcase"},
-		{item = "value_pipewrench"},
-		{item = "value_screwdriver"},
-		{item = "value_tools_screwdriver_flat"},
-		{item = "value_tools_screwdriver_flat_long"},
 	},
 }
 

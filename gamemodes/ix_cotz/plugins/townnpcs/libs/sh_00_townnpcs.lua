@@ -18,6 +18,13 @@ function PLUGIN:Register(id, contact)
 	self.byName[contact.name] = contact
 end
 
+-- A step's stock reward is one grant, or a list when it raises several items by different amounts.
+function PLUGIN:GetStockGrants(stock)
+	if not stock then return {} end
+
+	return stock[1] and stock or {stock}
+end
+
 function PLUGIN:StepID(contact, step)
 	return "cotz/town/" .. contact .. "/" .. step
 end
@@ -64,6 +71,16 @@ function PLUGIN:GetAmmoExchanges(character, npc)
 	table.sort(result, function(first, second) return first.output < second.output end)
 
 	return result
+end
+
+function PLUGIN:DescribeAmmoExchange(exchange)
+	local parts = {}
+	for _, input in ipairs(exchange.inputs) do
+		parts[#parts + 1] = string.format("%d %s of %s", input.boxes, input.boxes == 1 and "box" or "boxes",
+			ix.item.list[input.item].name)
+	end
+
+	return table.concat(parts, " and ") .. " for one box of " .. ix.item.list[exchange.output].name
 end
 
 function PLUGIN:BuildWantedItems(contact)
@@ -115,10 +132,15 @@ function PLUGIN:BuildBuyingItems(contact)
 	contact.buyingItems = buying
 end
 
+-- Contacts declaring taskRecipient = false are never chosen as a delivery target for any task.
+function PLUGIN:IsTaskRecipient(contact)
+	return contact.taskRecipient ~= false
+end
+
 function PLUGIN:WantsCourierItem(contact, item, includeLegacy)
+	if not self:IsTaskRecipient(contact) then return false end
 	if contact.disabledItems and contact.disabledItems[item] then return false end
 	local legacy = (contact.wantedItems or {})[item] == true
-	if contact.id == "the-original" then return includeLegacy == true and legacy end
 
 	return (contact.courierItems or {})[item] == true or legacy
 end

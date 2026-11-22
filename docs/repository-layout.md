@@ -29,6 +29,12 @@ See [item properties](item-properties.md) for conversion scales, providers and c
 The client schema library `schema/libs/cl_cotzui.lua` owns shared COTZ UI styling. It loads before
 gameplay plugins through the existing library loader. See [UI and HUD style](ui-style.md).
 
+The client schema library `schema/libs/cl_cotzicons.lua` owns `ix.cotzIcons`, the tints that restore the
+original colours of the greyscale `icon16/stalker_grey` and `icon16/ws2_grey` sets from `cotz_ui`. Item
+actions declare the greyscale path as their `icon`; the inventory menu tints it through
+`ix.cotzIcons.SetMenuImage`. The original-colour (gold) tints are reserved for menu buttons; tooltips and
+other panels tint greyscale icons with the teal `ix.cotzIcons.propertyColor`.
+
 `schema/libs/sh_economystats.lua` owns persistent per-character cash-flow counters and the admin
 scoreboard field list. Transaction owners record successful cash payments; simplecrossserverdata
 sends summaries only to administrators. See its [economy dossier guide](../gamemodes/ix_cotz/plugins/simplecrossserverdata/README.md#administrator-economy-dossier).
@@ -99,7 +105,7 @@ Paths below are relative to `gamemodes/ix_cotz/plugins/`.
 
 `suits/` owns tiered replaceable gasmask filters, their shared/server modules and immediate
 `items/gasmaskfilters/` definitions. Concrete headgear declares exact compatibility; closed-respiratory
-suit families use built-in air tanks serviced by Technut. See the [filter guide](../gamemodes/ix_cotz/plugins/suits/README.md).
+suit families use small, medium or large air tanks; Technut refills filters and tanks. See the [filter guide](../gamemodes/ix_cotz/plugins/suits/README.md).
 
 `weaponservice/` owns the technician weapon workshop: 260 exact-model barrel/receiver definitions,
 four salvage families, the reviewed firearm tier catalogue, fixed recipes, durability rebuilding,

@@ -42,8 +42,9 @@ Restart matching code on all map servers; no save reset or first-time setup is r
 ## Current progression, 9 November 2026
 
 The [progression overhaul](../../../../docs/npc-overhaul/progression-overhaul.md) is authoritative over
-the earlier progression, catalogue and service descriptions below. There are 631 milestones (595 hand-ins and 36 hideout installation objectives)
-in 52 branches, retaining current `v3/` IDs and adding 212 `/stock` intermissions.
+the earlier progression, catalogue and service descriptions below. There are 650 milestones (614 hand-ins and 36 hideout installation objectives)
+in 52 branches, retaining current `v3/` IDs and adding 231 stock deliveries. Brass's regular-ammunition stock
+deliveries branch off their calibre milestones; the other contacts' `/stock` intermissions precede the next unlock.
 Technut's initial anorak stock delivery and eleven intermediate stock-preparation deliveries are retired.
 Anoraks remain starting stock; suit progression starts with the Mail Jacket and follows each preceding suit
 directly. The independent painting branch remains. Existing regional ranks are retained for later suits.
@@ -94,8 +95,8 @@ earned credit and completed unlocks. Subsequent assignments keep their saved cho
 All progression briefings in the dialogue menu include assigned item names and remaining quantities.
 Stock-capacity milestones use "<item> stock increase" as their title in dialogue and the progression menu.
 
-All 631 active milestones have individual authored `briefing` and `completion` replies in their
-contact definitions, including the 212 stock-preparation deliveries. Read each contact's existing
+All 650 active milestones have individual authored `briefing` and `completion` replies in their
+contact definitions, including the 231 stock-preparation deliveries. Read each contact's existing
 profile and bound conversation before editing its voice. The current requirements, catalogue and
 benefits determine what a reply can promise; the older story tables and retired commissions do not.
 Requests leave assigned item names/counts to the existing objective display so valid saved deliveries
@@ -151,6 +152,31 @@ Regenerate reports with `progression_rewards.py --write` and `ammo_progression.p
 
 Deploy all map servers together and restart without resetting saves or running first-time setup.
 The linked overhaul guide records default quantities, current allocations, compatibility and live checks.
+
+## Brass stock reserve tracks, 22 November 2026
+
+Brass's regular-ammunition chain is now 24 calibre milestones. Each milestone requires only the
+previous one. Stock reserves no longer sit between calibres. Each calibre's reserves form a short side
+track that opens when that calibre's milestone is complete. Reserve steps keep `intermissionFor`,
+which now names the calibre milestone they branch from. The engine activates them as soon as their
+prerequisites are complete, and the tooling still treats them as category-wide stock deliveries.
+
+Stock targets are unchanged: 4 → 7 → 10, and buckshot/slugs 2 → 4 → 5. Starting-supply calibres
+(.22, 7.62x25, .410, 9x19, .45, buckshot, 9x18) still get their first rise from the chain milestone,
+then have one reserve step. Purchased calibres open with no stock bonus, then have two reserve steps.
+The second rise used to be bundled into the next calibre's purchase milestone. It is now a separate
+`<calibre>/stock-2` delivery that copies the first reserve's request quantities. .22 adds `22lr/stock-2`.
+9.3x64 adds `93x64/stock-1` and `93x64/stock-2`, so it follows the same path instead of jumping from
+4 to 10 on purchase. Existing step IDs, request quantities and the purchase milestones' requirements
+are unchanged. Three existing reserves moved to their calibre's region position, so their pools changed:
+`545x39/stock`, `357magnum/stock` and `50ae/stock`. Saved selections stay fixed.
+
+Existing reserve IDs keep their historical names. For example, `556x45/stock` raises 7.62x39.
+Stock is derived from completed steps. Characters who completed a later purchase milestone under the
+old layout lose its bundled second rise until they deliver the matching `stock-2` request.
+Unfinished purchase deliveries remain intact and no longer wait for a reserve.
+Regenerate with `python3 docs/npc-overhaul/tools/expand_progression.py --write` and
+`python3 docs/npc-overhaul/tools/progression_rewards.py --write` after editing Brass's progression.
 
 ## Gasmask filter purchases
 
@@ -224,9 +250,9 @@ Reward candidates are defined in each contact's `rewards` table, independently o
 Regular choices are revealed at completed hand-in; bonus choices are revealed once earned.
 New town rewards contain consumables or limited-use items, stash spawners, euros and dollars.
 Reusable equipment, attachments and other valuables are excluded. Technut and Jitters replace
-regular item rewards with 200/400/600 repair/treatment credits and convert the five-task bonus
-allowance to the same provider-bound credit at face value. Credit exceeding the balance cap stays
-pending until spent; cash and reputation payments remain separate.
+regular item rewards with 300/600/900 repair/treatment credits and convert the five-task bonus
+allowance to the same provider-bound credit at face value. Service credit balances have no cap.
+Cash and reputation payments remain separate.
 Every ammunition reward is half its normal pack. Old Timer offers .410 rather than 12g or .22;
 Cleaner keeps cutlery and cleaning kits as regular choices and stash spawners as bonus choices.
 Spicy Lemon also offers cutlery. Mute, Spool and Ballast offer 200/400/600 rubles as their regular
@@ -821,8 +847,8 @@ compact pistol/SMG routes, while Spool sells existing music cassettes alongside 
 Cooking-fuel purchases, ordinary supplies and stock rewards are removed from the clinic, archive,
 research/communications desks and outfitter. Their affected rewards now improve medical, measuring,
 computing, recording or textile equipment and appropriate working provisions. Field/camp contacts
-retain fuel where it supports expeditions or utilities. All stock increases remain capped at +4 and
-are usable at the earning milestone. TODO plans and progression IDs are unchanged; progression gifts are removed.
+retain fuel where it supports expeditions or utilities. Stock increases are capped at +4, except Brass's
+ammunition reserves (see below), and are usable at the earning milestone. TODO plans and progression IDs are unchanged; progression gifts are removed.
 
 There are 234 active planned entries plus eight retained in Arena Master's inactive reference tree.
 Each `plannedUnlocks` entry has its own adjacent `-- TODO:` comment, stable ID, provider, kind,
@@ -837,6 +863,7 @@ against stale saved vendors. Atlas owns binoculars_2/1/4/3 at AT01/AT05/AT13/AT1
 local routes. The canonical predecessor chain remains enforced.
 
 Stock bonuses are highest-earned **total bonuses**, capped by authoring policy at +4 per item/provider.
+Brass's regular ammunition is the exception; validation allows up to +8 (`MAX_STOCK_BONUS`).
 Do not repeat an equal tier after its prerequisite: it grants no improvement. Existing quantities,
 refill intervals, refill amounts and prices are not retuned here. Default assortment/stock rework is separate.
 
@@ -851,6 +878,30 @@ pending claims and paid benefits remain intact; gifts are not replayed and old s
 No save reset or first-time setup is needed. Restart map servers together and verify regional vendors,
 independent sellers, conversions, stock synchronization, pending claims and existing characters in multiplayer.
 Standalone specs cannot establish those runtime behaviours.
+
+## Brass and Carbon ammunition (November 2026)
+
+Brass's regular ammunition starts at 4/4 stock: supplies use the contact's `supplyStock`, and unlocked
+calibres use catalogue terms of 4/4. Buckshot and slugs keep 2/2 through `supplyStockOverrides`, which gives
+individual supplies their own stock terms. Each calibre rises to 7/7 at its first reserve milestone and to 10/10
+at the next one. Calibres with a single reserve step get the second rise from the following calibre's purchase
+milestone. .410 follows the same 4 → 7 → 10 path. Buckshot and slugs go 2 → 4 → 5 and share milestones.
+7.62x39 has its own reserve step (`v3/regular-ammo/556x45/stock`), added before the 5.56x45 purchase.
+It declares `defaultActive`, so characters who already unlocked 7.62x39 can take it. An unfinished 5.56x45
+delivery waits until that reserve is complete, and saved hand-ins are kept. 9.3x64 is last in the line, so it goes
+from 4 to 10 on its purchase milestone. A step's `stock` can be a list of grants
+(`{bonus = n, items = {...}}`) when it raises several items by different amounts.
+Brass sets `preserveProgression`, so `expand_progression.py` keeps these hand-tuned targets.
+
+Carbon's AP exchanges now consume two regular boxes, matching Brass's HP exchanges. Brass no longer sells
+Tri-Ball, darts or Magnum buckshot. Their shotgun-load milestones open exchanges instead:
+one buckshot box plus one slug box for Tri-Ball, two slug boxes for darts and two buckshot boxes for Magnum
+buckshot. A compound recipe lists `ammoExchange.inputs`; single-input recipes keep `input` and `boxes`.
+Each input banks its own round credit, so a failed stack removal can be retried without loss.
+
+The dart reserve intermission (`v3/shotgun-loads/12gaugemg/stock`) is retired. Saved lines for it remain
+inert history. The Magnum buckshot milestone now requires only darts and declares `defaultActive`, so
+characters who finished darts before the update can take it immediately.
 
 ## Alternate spawn positions
 
@@ -1031,5 +1082,8 @@ character with no saved evidence must greet that scientist again. No saves are r
 Valuable-courier offers, previews, task journals and server hand-ins use the same discovery filter.
 Wake's information-parcel assignments also exclude undiscovered bunker scientists, retaining their
 existing regional and bunker-card gates. Accepted parcel destinations remain saved without rerolling.
+A contact declaring `taskRecipient = false` is never chosen as a recipient for any task: information
+parcels, valuable-courier hand-ins (including legacy ones), or progression field deliveries, which
+fail validation if they name it. The Original declares it because he is no longer used.
 Verify greeting each scientist, switching characters, reconnecting, previews and deliveries in multiplayer.
 Run `luatex --luaonly tests/regional_jobs_spec.lua` for standalone regression coverage.

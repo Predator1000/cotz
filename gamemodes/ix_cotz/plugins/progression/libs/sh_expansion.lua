@@ -51,7 +51,7 @@ function ix.progression.BuildDeliveryResponse(self, npcName, status, character)
 		parts[#parts + 1] = "Request fulfilled."
 	elseif self.hideoutLevel and not line.requirements then
 		parts[#parts + 1] = self.hideoutLevel == 1 and "Claim a personal room to receive its starter crate."
-			or ("Craft and install any personal storage crate at level " .. self.hideoutLevel .. ".")
+			or ("Have the local contact fit any personal storage container at level " .. self.hideoutLevel .. ".")
 	elseif self.progressthresholds and not (self.hideoutLevel and line.requirements) then
 		local value = line.value or 0
 		parts[#parts + 1] = string.format("Qualified matches completed: %d/%d.", value,
@@ -119,9 +119,7 @@ function ix.progression.GetBenefitSummary(definition, character)
 			table.concat(names, ", "), unlock.bonus)
 	end
 	if definition.ammoExchange then
-		local exchange = definition.ammoExchange
-		parts[#parts + 1] = string.format("Ammunition exchange: %d boxes of %s for one box of %s",
-			exchange.boxes, ix.item.list[exchange.input].name, ix.item.list[exchange.output].name)
+		parts[#parts + 1] = "Ammunition exchange: " .. ix.townNPCs:DescribeAmmoExchange(definition.ammoExchange)
 	end
 	for _, service in ipairs(definition.townServices or {}) do parts[#parts + 1] = service.name end
 	for _, itemID in ipairs(definition.variantUnlocks or {}) do

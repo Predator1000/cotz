@@ -1023,11 +1023,12 @@ function SWEP:getBoneOrientation(boneId)
 	end
 end
 
-function SWEP:_drawAttachmentModel(data)
+function SWEP:_drawAttachmentModel(data, offset)
 	local model = data.ent
 	local pos, ang = self:getBoneOrientation(data._bone) --self.CW_VM:GetBonePosition(data.bone)
 
-	model:SetPos(pos + ang:Forward() * data.pos.x + ang:Right() * data.pos.y + ang:Up() * data.pos.z)
+	offset = offset or data.pos
+	model:SetPos(pos + ang:Forward() * offset.x + ang:Right() * offset.y + ang:Up() * offset.z)
 	ang:RotateAroundAxis(ang:Up(), data.angle.y)
 	ang:RotateAroundAxis(ang:Right(), data.angle.p)
 	ang:RotateAroundAxis(ang:Forward(), data.angle.r)
@@ -1057,12 +1058,15 @@ function SWEP:drawAttachments()
 		return false
 	end
 
-	local FT = FrameTime()
+	local preview = self.cotzAttachmentPreview
+	local previewData = preview and (preview.data or self.AttachmentModelsVM[preview.id])
+	if previewData and IsValid(previewData.ent) and previewData._bone
+		and self.CW_VM:GetBoneMatrix(previewData._bone) then
+		self:_drawAttachmentModel(previewData, preview.pos)
+	end
 
 	for k, v in pairs(self.AttachmentModelsVM) do
-		-- no point in drawing/positioning models that are not visible
-
-		if v.active then
+		if v.active and (not preview or (k ~= preview.id and not preview.slot[k])) then
 			self:_drawAttachmentModels(v)
 		end
 	end
