@@ -38,6 +38,15 @@ if CLIENT then
 
 	SWEP.PSOPos = Vector(-3.393, -4, 0.965)
 	SWEP.PSOAng = Vector(0.295, 0.46, 0)
+
+	SWEP.ShortDotPos = Vector(-3.569614, -4.969, 0.598615)
+	SWEP.ShortDotAng = Vector(0.24, 0.495, 0)
+
+	SWEP.ACOGPos = Vector(-3.574564, -4.079, 0.192375)
+	SWEP.ACOGAng = Vector(0.24, 0.495, 0)
+
+	SWEP.NXSPos = Vector(-3.634324, -4.079, 0.559413)
+	SWEP.NXSAng = Vector(0.24, 0.495, 0)
 	
 	SWEP.CustomizePos = Vector(12.121, -4.907, -0.461)
 	SWEP.CustomizeAng = Vector(17.232, 58.485, 19.311)
@@ -46,8 +55,10 @@ if CLIENT then
 	SWEP.SightBackUpAng = Vector(0.24, 0.495, 0)
 		
 	SWEP.SightWithRail = true
-	SWEP.PSO1AxisAlign = {right = -90, up = 0, forward = 0}
+	SWEP.PSO1AxisAlign = {right = 0, up = 0, forward = 90}
 	SWEP.SchmidtShortDotAxisAlign = {right = 0, up = 0, forward = 0}
+	SWEP.ACOGAxisAlign = {right = 0, up = 0, forward = 0}
+	SWEP.NXSAlign = {right = 0, up = 0, forward = 0}
 	
 	SWEP.ForeGripOffsetCycle_Reload = 0.75
 	SWEP.ForeGripOffsetCycle_Reload_Empty = 0.9
@@ -56,6 +67,36 @@ if CLIENT then
 		["md_pbs1"] = {model = "models/cw2/attachments/pbs1.mdl", bone = "wpn_body", pos = Vector(1.649, -2.201, -18), angle = Angle(0, 90, -90), size = Vector(1.299, 1.299, 1.299)},
 		["md_kobra"] = {model = "models/cw2/attachments/kobra.mdl", bone = "wpn_body", pos = Vector(-0.49, 0.5, -2), angle = Angle(0, 0, -90), size = Vector(0.8, 0.8, 0.8)},
 		["md_pso1"] = {model = "models/cw2/attachments/pso.mdl", bone = "wpn_body", pos = Vector(-0.2, -0.5, 3), angle = Angle(0, 0, -90), size = Vector(0.8, 0.8, 0.8)},
+		-- Rail placement transferred from the SR-3M using the PSO-1 as the anchor.
+		["md_rail"] = {
+			model = "models/wystan/attachments/akrailmount.mdl",
+			bone = "wpn_body",
+			pos = Vector(0.086541, -2.746051, -1.787542),
+			angle = Angle(0, 180, 90),
+			size = Vector(0.889878, 0.889878, 0.889878),
+		},
+		["md_schmidt_shortdot"] = {
+			model = "models/cw2/attachments/schmidt.mdl",
+			bone = "wpn_body",
+			pos = Vector(0.173164, 0.347043, 2.887199),
+			angle = Angle(-90, 90, 0),
+			size = Vector(0.82, 0.82, 0.82),
+		},
+		["md_acog"] = {
+			model = "models/wystan/attachments/2cog.mdl",
+			bone = "wpn_body",
+			pos = Vector(0.225206, 0.909659, 2.899033),
+			angle = Angle(0, 180, 90),
+			size = Vector(0.92, 0.92, 0.92),
+		},
+		-- Seated on the rail adapter as on the Saiga Sport, centred along the rail.
+		["md_nightforce_nxs"] = {
+			model = "models/cw2/attachments/l96_scope.mdl",
+			bone = "wpn_body",
+			pos = Vector(0.04041, -5.342543, -1.788348),
+			angle = Angle(-90, 90, 0),
+			size = Vector(1, 1, 1),
+		},
 	}
 
 	SWEP.LuaVMRecoilAxisMod = {vert = 0.5, hor = 1, roll = 1, forward = 0.5, pitch = 0.5}
@@ -66,7 +107,12 @@ end
 	
 SWEP.LuaViewmodelRecoil = true
 
-SWEP.Attachments = {[1] = {header = "Sight", offset = {800, -500},  atts = {"md_kobra","md_pso1"}},
+SWEP.Attachments = {
+	[1] = {
+		header = "Sight",
+		offset = {800, -500},
+		atts = {"md_kobra", "md_pso1", "md_schmidt_shortdot", "md_acog", "md_nightforce_nxs"},
+	},
 	[2] = {header = "Barrel", offset = {300, -500}, atts = {"md_pbs1"}},
 --	[3] = {header = "Handguard", offset = {-300, 0}, atts = {"md_foregrip"}},
 	["+reload"] = {header = "Ammo", offset = {800, 0}, atts = {"am_hollowpoint", "am_armorpiercing"}}}

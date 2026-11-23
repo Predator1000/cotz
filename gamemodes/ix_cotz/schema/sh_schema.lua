@@ -35,6 +35,7 @@ ix.flag.Add("N", "Event/Customization")
 
 ALWAYS_RAISED["weapon_flashlight"] = true
 ALWAYS_RAISED["stalker_bolt"] = true
+ALWAYS_RAISED["cw_anomaly_bolt"] = true
 ALWAYS_RAISED["detector_bear"] = true
 ALWAYS_RAISED["detector_veles"] = true
 ALWAYS_RAISED["detector_echo"] = true
@@ -75,6 +76,24 @@ local stalker_models = {
 	["models/nasca/stalker/male_seva_merc.mdl"] = true,
 	["models/nasca/stalker/male_seva_eco.mdl"] = true,
 	["models/nasca/stalker/male_seva_mono.mdl"] = true,
+
+	["models/cotz/sectorfour/male_anorak.mdl"] = true,
+	["models/cotz/sectorfour/male_berill1.mdl"] = true,
+	["models/cotz/sectorfour/male_berill5m.mdl"] = true,
+	["models/cotz/sectorfour/male_cs1.mdl"] = true,
+	["models/cotz/sectorfour/male_cs1a.mdl"] = true,
+	["models/cotz/sectorfour/male_cs1b.mdl"] = true,
+	["models/cotz/sectorfour/male_cs2.mdl"] = true,
+	["models/cotz/sectorfour/male_cs4.mdl"] = true,
+	["models/cotz/sectorfour/male_exoskeleton.mdl"] = true,
+	["models/cotz/sectorfour/male_hawk.mdl"] = true,
+	["models/cotz/sectorfour/male_outfit_expedition.mdl"] = true,
+	["models/cotz/sectorfour/male_outfit_novice.mdl"] = true,
+	["models/cotz/sectorfour/male_psz9.mdl"] = true,
+	["models/cotz/sectorfour/male_ssp99.mdl"] = true,
+	["models/cotz/sectorfour/male_stingray9.mdl"] = true,
+	["models/cotz/sectorfour/male_sunrise.mdl"] = true,
+	["models/cotz/sectorfour/male_trenchcoat.mdl"] = true,
 }
 
 for k, v in pairs(stalker_models) do
@@ -83,4 +102,4 @@ for k, v in pairs(stalker_models) do
 	util.PrecacheModel(k)
 end
 
-player_manager.AddValidHands( "stalker_default", "models/arms/c_arms_stalker.mdl", 0, 0 )
+player_manager.AddValidHands( "stalker_default", "models/flaymi/hands/wpn_hand_no_outfit.mdl", 0, 0 )

@@ -608,6 +608,8 @@ function SWEP:isReloading()
 end
 
 function SWEP:canOpenInteractionMenu()
+	if self:GetNWBool("cotz/anomaly/inventory-attachments", false) then return false end
+
 	if self.dt.State == CW_CUSTOMIZE then
 		return true
 	end
@@ -673,7 +675,8 @@ function SWEP:canUseComplexTelescopics()
 end
 
 function SWEP:canUseSimpleTelescopics()
-	if not self:canUseComplexTelescopics() and self.SimpleTelescopicsFOV then
+	if not self:canUseComplexTelescopics()
+		and (self.SimpleTelescopicsFOV or CLIENT and self:GetCotzIntegratedScope()) then
 		return true
 	end
 
@@ -890,13 +893,8 @@ if CLIENT then
 	end
 
 	function SWEP:getTelescopeAngles()
-		if self.freeAimOn then
-			return self.Owner:EyeAngles()
-		end
-
-		local muzzle = self:getMuzzlePosition()
-
-		return muzzle and muzzle.Ang or self.Owner:EyeAngles()
+		-- Viewmodel muzzle attachments can express pitch as roll.
+		return self.Owner:EyeAngles()
 	end
 
 	function SWEP:getLaserAngles(model)
