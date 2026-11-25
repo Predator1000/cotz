@@ -130,6 +130,9 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= true
 SWEP.ViewModel 		= "models/weapons/v_rif_l852_mod2.mdl" -- recompiled model to not have snappy reload animation
 SWEP.WorldModel 	= "models/weapons/w_rif_l852.mdl"
+SWEP.WorldAttachmentScale = 1.318
+SWEP.WorldAttachmentShift = Vector(-1.47, -0.02, 0.01)
+SWEP.WorldAttachmentAngle = Angle(90, 89.99, 0)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -160,10 +163,10 @@ SWEP.DeployTime = 0.7
 SWEP.DrawSpeed = 0.98
 
 SWEP.ReloadSpeed = 0.95
-SWEP.ReloadTime = 1.82
-SWEP.ReloadTime_Empty = 2.6
-SWEP.ReloadHalt = 2.0
-SWEP.ReloadHalt_Empty = 3.1
+SWEP.ReloadTime = 3.28
+SWEP.ReloadTime_Empty = 3.28
+SWEP.ReloadHalt = 3.28
+SWEP.ReloadHalt_Empty = 3.28
 SWEP.SnapToIdlePostReload = true
 
 -- such a pain in the ass to fucking do this

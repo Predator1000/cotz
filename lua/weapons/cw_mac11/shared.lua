@@ -136,6 +136,7 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/cw2/smgs/mac11.mdl"
 SWEP.WorldModel		= "models/weapons/w_cst_mac11.mdl"
+SWEP.WorldAttachmentScale = 1.333
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -167,10 +168,10 @@ SWEP.Damage = 39
 SWEP.DeployTime = 0.45
 
 SWEP.ReloadSpeed = 1
-SWEP.ReloadTime = 1.79
-SWEP.ReloadTime_Empty = 2.26
-SWEP.ReloadHalt = 2
-SWEP.ReloadHalt_Empty = 3
+SWEP.ReloadTime = 3.02
+SWEP.ReloadTime_Empty = 3.02
+SWEP.ReloadHalt = 3.02
+SWEP.ReloadHalt_Empty = 3.02
 
 SWEP.SnapToIdlePostReload = true
 

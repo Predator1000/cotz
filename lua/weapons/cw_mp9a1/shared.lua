@@ -132,6 +132,9 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= true
 SWEP.ViewModel		= "models/weapons/v_smg_mp9a1.mdl"
 SWEP.WorldModel		= "models/weapons/w_smg_mp9a1.mdl"
+SWEP.WorldAttachmentScale = 1.615
+SWEP.WorldAttachmentShift = Vector(-3.7, -2.67, 0.25)
+SWEP.WorldAttachmentAngle = Angle(-2.18, 1.93, 178.19)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -163,9 +166,9 @@ SWEP.Damage = 58
 SWEP.DeployTime = 0.45
 
 SWEP.ReloadSpeed = 1.3
-SWEP.ReloadTime = 2.26
-SWEP.ReloadTime_Empty = 2.26
-SWEP.ReloadHalt = 3
-SWEP.ReloadHalt_Empty = 3
+SWEP.ReloadTime = 2.9
+SWEP.ReloadTime_Empty = 2.9
+SWEP.ReloadHalt = 2.9
+SWEP.ReloadHalt_Empty = 2.9
 
 SWEP.SnapToIdlePostReload = false

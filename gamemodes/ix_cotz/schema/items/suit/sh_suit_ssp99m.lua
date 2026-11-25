@@ -1,6 +1,6 @@
 ITEM.name = "SSP-99M"
 ITEM.model = "models/kek1ch/ecolog_outfit_green.mdl"
-ITEM.newModel = "models/nasca/stalker/male_ssp_eco.mdl"
+ITEM.newModel = "models/cotz/sectorfour/male_ssp99.mdl"
 ITEM.description= "An SSP-99M Suit."
 ITEM.longdesc = "High quality modified SSP-99 Scientific Research Suit. It provides increased body protection from bullet and splinter damage. It is designed for the guards working with scientific expeditions. It provides good protection from radiation and biological anomalies. It is resistant to chemically aggressive environments and other effects dangerous to the body."
 
@@ -9,7 +9,7 @@ ITEM.height = 3
 ITEM.img = ix.util.GetMaterial("vgui/hud/ssp99m.png")
 ITEM.overlayPath = "vgui/overlays/hud_sci"
 ITEM.weight = 3.900
-ITEM.newSkin = 1
+ITEM.newSkin = 2
 
 ITEM.price = 315500
 ITEM.repairCost = ITEM.price/100*1 -- cost to repair from 0% durability
@@ -47,11 +47,8 @@ ITEM.exteriorSlots = 2
 ITEM.interiorSlots = 1
 ITEM.extraSlots = 1
 
---ITEM.skincustom[1] = {
---	name = "Skin 0",
---	skingroup = 0,
---}
-ITEM.skincustom[2] = {
-	name = "Skin 1",
-	skingroup = 1,
+ITEM.bodyGroups = {
+	["Head"] = 1,
+	["Neck"] = 1,
 }
+ITEM.skincustom = ix.suitAppearance.SkinOptions(0, 14)

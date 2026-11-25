@@ -125,6 +125,7 @@ SWEP.ZoomAmount = 15
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/khrcw2/doipack/mp40.mdl"
 SWEP.WorldModel		= "models/khrcw2/doipack/w_mp40.mdl"
+SWEP.WorldAttachmentScale = 1.144
 
 SWEP.DrawTraditionalWorldModel = false
 SWEP.WM = "models/khrcw2/doipack/w_mp40.mdl"
@@ -171,10 +172,10 @@ SWEP.ADSFireAnim = true
 SWEP.RecoilToSpread = .2
 
 SWEP.ReloadSpeed = 1.1
-SWEP.ReloadTime = 2.225
-SWEP.ReloadHalt = 2.8
-SWEP.ReloadTime_Empty = 4
-SWEP.ReloadHalt_Empty = 4.4
+SWEP.ReloadTime = 3.0
+SWEP.ReloadHalt = 3.0
+SWEP.ReloadTime_Empty = 4.64
+SWEP.ReloadHalt_Empty = 4.64
 
 function SWEP:IndividualThink()
 

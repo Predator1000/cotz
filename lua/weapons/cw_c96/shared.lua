@@ -174,6 +174,9 @@ SWEP.ZoomAmount = 15
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/khrcw2/doipack/c96.mdl"
 SWEP.WorldModel		= "models/khrcw2/doipack/w_c96.mdl"
+SWEP.WorldAttachmentScale = 1.436
+SWEP.WorldAttachmentShift = Vector(0.1, 0.05, 0.04)
+SWEP.WorldAttachmentAngle = Angle(0.01, 0.92, -90)
 
 SWEP.DrawTraditionalWorldModel = false
 SWEP.WM = "models/khrcw2/doipack/w_c96.mdl"
@@ -222,10 +225,10 @@ SWEP.RecoilToSpreadAuto = 1
 SWEP.RecoilToSpreadSemi = 0
 
 SWEP.ReloadSpeed = 1.4
-SWEP.ReloadTime = 3.4
-SWEP.ReloadHalt = 6
-SWEP.ReloadTime_Empty = 3.1
-SWEP.ReloadHalt_Empty = 4.2
+SWEP.ReloadTime = 6.17
+SWEP.ReloadHalt = 6.17
+SWEP.ReloadTime_Empty = 4.34
+SWEP.ReloadHalt_Empty = 4.34
 
 
 function SWEP:fireAnimFunc()

@@ -14,6 +14,8 @@ if CLIENT then
 	
 	SWEP.MuzzleEffect = "muzzleflash_SR25"
 	SWEP.MuzzleAttachmentName = "muzzle"
+	SWEP.WorldAttachmentScale = 1.001
+	SWEP.WorldAttachmentAngle = Angle(3.16, 0.39, -15.13)
 	SWEP.PosBasedMuz = true
 	SWEP.SnapToGrip = true
 	SWEP.ShellScale = 0.7
@@ -223,9 +225,9 @@ SWEP.ReloadTime_Empty = 2
 SWEP.ReloadHalt = 1
 SWEP.ReloadHalt_Empty = 1
 
-SWEP.ReloadStartTime = 1
-SWEP.InsertShellTime = 0.7
-SWEP.ReloadFinishWait = 0.6
+SWEP.ReloadStartTime = 0.84
+SWEP.InsertShellTime = 0.84
+SWEP.ReloadFinishWait = 0.94
 SWEP.ShotgunReload = true
 SWEP.AlwaysPlayReloadEnd = true
 

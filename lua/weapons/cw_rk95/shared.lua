@@ -39,6 +39,9 @@ if CLIENT then
 	
 	SWEP.MuzzleEffect = "muzzleflash_ak74"
 	SWEP.MuzzleAttachmentName = "muzzle"
+	SWEP.WorldAttachmentScale = 1.388
+	SWEP.WorldAttachmentShift = Vector(-1.17, -0.06, -0.04)
+	SWEP.WorldAttachmentAngle = Angle(0, 0.13, 0)
 	SWEP.PosBasedMuz = false
 	SWEP.ShellScale = 0.7
 	SWEP.ShellOffsetMul = 1
@@ -197,10 +200,10 @@ SWEP.Damage = 87
 SWEP.DeployTime = 0.6
 
 SWEP.ReloadSpeed = 1
-SWEP.ReloadTime = 2.1
-SWEP.ReloadTime_Empty = 2.2
-SWEP.ReloadHalt = 2.9
-SWEP.ReloadHalt_Empty = 3.9
+SWEP.ReloadTime = 3.04
+SWEP.ReloadTime_Empty = 4.0
+SWEP.ReloadHalt = 3.04
+SWEP.ReloadHalt_Empty = 4.0
 SWEP.SnapToIdlePostReload = true
 
 function SWEP:IndividualInitialize()

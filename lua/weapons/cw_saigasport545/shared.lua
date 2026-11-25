@@ -175,6 +175,9 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/weapons/v_bfh_saiga308.mdl"
 SWEP.WorldModel		= "models/weapons/w_bfh_saiga308.mdl"
+SWEP.WorldAttachmentScale = 1.213
+SWEP.WorldAttachmentShift = Vector(9.36, 0.66, 0.17)
+SWEP.WorldAttachmentAngle = Angle(0, -0.01, -90)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -205,9 +208,9 @@ SWEP.DeployTime = 0.5
 
 
 SWEP.ReloadSpeed = 1
-SWEP.ReloadTime = 2.7
-SWEP.ReloadTime_Empty = 3.7
-SWEP.ReloadHalt = 3
-SWEP.ReloadHalt_Empty = 3.8
+SWEP.ReloadTime = 4.2
+SWEP.ReloadTime_Empty = 4.2
+SWEP.ReloadHalt = 4.2
+SWEP.ReloadHalt_Empty = 4.2
 
 SWEP.SnapToIdlePostReload = true

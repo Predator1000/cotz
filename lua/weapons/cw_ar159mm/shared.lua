@@ -123,6 +123,9 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/cw2/weapons/v_cam_m49mm.mdl"
 SWEP.WorldModel		= "models/cw2/weapons/w_cam_m49m.mdl"
+SWEP.WorldAttachmentScale = 1.273
+SWEP.WorldAttachmentShift = Vector(-6.92, 0.41, -0.01)
+SWEP.WorldAttachmentAngle = Angle(0, -0.01, -90)
 
 SWEP.DrawTraditionalWorldModel = false
 SWEP.WM = "models/cw2/weapons/w_cam_m49m.mdl"
@@ -157,8 +160,8 @@ SWEP.Damage = 43
 SWEP.DeployTime = 0.6
 
 SWEP.ReloadSpeed = 1.3
-SWEP.ReloadTime = 2.9
-SWEP.ReloadTime_Empty = 3.5
-SWEP.ReloadHalt = 3.1
-SWEP.ReloadHalt_Empty = 3.7
+SWEP.ReloadTime = 3.33
+SWEP.ReloadTime_Empty = 3.92
+SWEP.ReloadHalt = 3.33
+SWEP.ReloadHalt_Empty = 3.92
 SWEP.SnapToIdlePostReload = false

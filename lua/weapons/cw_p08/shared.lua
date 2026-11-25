@@ -96,6 +96,8 @@ SWEP.ZoomAmount = 5
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/khrcw2/doipack/lugerp08.mdl"
 SWEP.WorldModel		= "models/khrcw2/doipack/w_lugerp08.mdl"
+SWEP.WorldAttachmentScale = 1.548
+SWEP.WorldAttachmentAngle = Angle(-0.01, 0.92, -96.61)
 
 SWEP.DrawTraditionalWorldModel = false
 SWEP.WM = "models/khrcw2/doipack/w_lugerp08.mdl"
@@ -142,9 +144,9 @@ SWEP.HolsterOnLadder = false
 SWEP.SprintingEnabled = false
 
 SWEP.ReloadSpeed = 1.45
-SWEP.ReloadTime = 2.15
-SWEP.ReloadHalt = 2.9
-SWEP.ReloadTime_Empty = 2.95
+SWEP.ReloadTime = 3.0
+SWEP.ReloadHalt = 3.0
+SWEP.ReloadTime_Empty = 4.0
 SWEP.ReloadHalt_Empty = 4
 
 function SWEP:IndividualInitialize()

@@ -22,6 +22,17 @@ and records existing sight exceptions. CW keeps authored mounts and sight aims a
 and use the receiver surface and the sight's optical axis as placement references. Check the
 fallback entries after changing viewmodels.
 
+`python3 docs/attachments/weapon_fit.py fallback all` audits those entries against the idle pose of each
+viewmodel, using the bodygroups the weapon sets in `IndividualInitialize` or `IndividualThink`. The original
+table placed every sight on a gun at one shared distance from the eye, so on short viewmodels (pistols, revolvers
+and compact SMGs) the sights hung behind the frame. The audit moves a sight with less than half of its mount over
+the gun forward or back along its line of sight to the nearest flat stretch of the gun's top, seats it, and
+lowers or raises its aim by the same height. Aim depth is unchanged, since the fallback aims keep the gun's
+ironsight-relative ADS position. It also moves suppressors that stand in front of the visible barrel back onto it.
+Some models put their muzzle attachment past the barrel, and the M29 and Obrez show a shorter barrel than
+that point. Add `--write` to update the table. Arm and hand bones are excluded by name. Side-mounted optics and
+long scopes that only overhang the end of a receiver are left alone.
+
 Weapons default to a family by
 `ITEM.weaponCategory` (primary: rifle, secondary: pistol), with per-class overrides.
 
@@ -84,6 +95,8 @@ Free Aim and backup sights retain their own aim behavior. The CW scope cameras s
 in the square render target and the simple scope overlay. Reticle texture offsets account for artwork
 whose aiming point is a few texels away from the texture center. Keep model and mount orientation in
 the placement and use the scope camera alignment fields for calibration and lens roll.
+Mounted CW optics bind their render target to the attachment model's lens, so a weapon's built-in
+lens material can use its own binding. Magnification comes from each optic's CW definition.
 
 ## Third-person display
 
@@ -93,6 +106,41 @@ from that bone to the muzzle estimates the difference in scale. Rail adapters fo
 sight. The server replicates the installed attachment list so other players can see changes and
 clients entering visibility can draw the current setup. Placement is approximate, especially on
 legacy model pairs with differently oriented muzzle points.
+
+The `wpn_body` estimate is only as good as that bone's position in both models. Where the viewmodel's
+`wpn_body` is not at the same place of the gun (the AEK-971, AK-12 and AKS-74U estimated about 0.55 against a
+true 0.84 to 0.90), a weapon can name its own fit:
+
+- `SWEP.WorldAttachmentScale` replaces the estimate.
+- `SWEP.WorldAttachmentShift` (Vector, in the worldmodel muzzle frame, after scaling) moves the fitted
+  viewmodel along the worldmodel's axes, for muzzle attachments that sit away from the barrel tip.
+- `SWEP.WorldAttachmentAngle` turns the viewmodel muzzle frame onto the worldmodel's when the two face opposite
+  ways (the CZ-52 and AN-94 pairs, whose sights otherwise landed beyond the muzzle).
+
+`python3 docs/attachments/weapon_fit.py world CLASS... [--write]` measures them. The Anomaly pairs are one mesh
+at a uniform scale, so it compares the gun-only vertices of both models in their muzzle frames and accepts a
+fit only when the length and width ratios agree (the AN-94 pair is accepted on its turn alone, because its
+worldmodel carries extra width). It writes the fields after `SWEP.MuzzleAttachmentName` only where the fit moves a
+sight by at least a unit.
+
+`python3 docs/attachments/weapon_fit.py legacy-world all` audits legacy pairs. It measures visible
+gun geometry with the active c_hands viewmodel and authored startup bodygroups where applicable.
+It checks the scale against a second dimension or compares compatible muzzle tips when the models
+have different stock or handguard lengths. For legacy muzzle attachments with a rotated frame,
+it aligns the barrel and the top of the gun before computing the shift and angle. For models with
+no muzzle attachment and a distinguishable barrel tip, it uses the configured `WorldAttachmentBone`
+to follow the worldmodel. Add `--write` to update the accepted fields. Skipped models use the
+shared estimate and may need manual measurements. Check the resulting positions and size in multiplayer.
+
+## Attachment bones
+
+Attachment models follow the bone they name, so the bone must travel with the receiver. Some Anomaly
+viewmodels animate `body` while `wpn_body` stays at the origin; sights on such a `wpn_body` hang in place
+during recoil, reloads and draws. `python3 docs/attachments/weapon_fit.py bones CLASS... | all` reports each
+attachment bone's drift from the receiver. `weapon_fit.py rebone CLASS --to BONE --from BONE [--write]` moves the
+models onto another bone and recomputes `pos` and `angle`, so each keeps its exact idle pose and the aim fits stay
+valid. The AEK-971, AK-12, AKS-74U and AK-74 sit on `body`; the TOZ-34 sights follow the `bend_reload` barrels.
+The LAX, MP-18 and TOZ-106 still name bones that their current models lack, so their attachment models never draw.
 
 ## Applying exports
 
@@ -143,5 +191,5 @@ muzzle pivot. The runner reseats nearby rail sights by mesh contact and refits A
 line. The audit uses the stored unreflected frame on mirrored viewmodels. Idle motion and client
 rendering still affect how the in-game lens appears.
 
-Run `tests/run.sh attachment_placement attachment_apply weapon_reticle scope_camera` after changing the
-placement or reticle code.
+Run `tests/run.sh attachment_placement attachment_apply weapon_reticle scope_camera weapon_world_attachments weapon_fit`
+after changing the placement, reticle, world attachment or fitting code.

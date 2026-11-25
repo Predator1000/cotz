@@ -93,7 +93,13 @@ function SWEP:FireAnimationEvent(pos, ang, event, name)
 end
 
 function SWEP:getAnimSeek()
-	return self.CW_VM:GetCycle() * self.CW_VM:SequenceDuration()
+	local seek = self.CW_VM:GetCycle() * self.CW_VM:SequenceDuration()
+	local cut = self.ActiveReloadChamberCut
+	if cut and self.ReloadChamberCutPassed then
+		seek = seek - (cut.to - cut.from)
+	end
+
+	return seek
 end
 
 function SWEP:CreateShell(sh)
@@ -830,6 +836,19 @@ end
 
 local cw_customhud_ammo = GetConVar("cw_customhud_ammo")
 
+local function advanceReloadChamberCut(weapon, vm)
+	local cut = weapon.ActiveReloadChamberCut
+	if not cut or weapon.ReloadChamberCutPassed then return end
+
+	local duration = vm:SequenceDuration()
+	local cycle = vm:GetCycle()
+	if duration <= 0 or cycle * duration < cut.from then return end
+
+	vm:SetCycle(math.min(1, cycle + (cut.to - cut.from) / duration))
+	vm:InvalidateBoneCache()
+	weapon.ReloadChamberCutPassed = true
+end
+
 function SWEP:_drawViewModel()
 	-- draw the viewmodel
 
@@ -840,6 +859,7 @@ function SWEP:_drawViewModel()
 	local POS = EyePos() - self.CW_VM:GetPos()
 
 	self.CW_VM:FrameAdvance(FrameTime())
+	advanceReloadChamberCut(self, self.CW_VM)
 	self.CW_VM:SetupBones()
 	self:CenterCotzOptic()
 	self.CW_VM:DrawModel()
@@ -995,6 +1015,21 @@ local RETICLE_TEXTURE_OFFSETS = {
 }
 local RETICLE_DISTANCE = 100
 local RETICLE_FADE = 0.13
+-- Source's MATERIAL_VAR_IGNOREZ material flag; Garry's Mod does not expose it as a global.
+local MATERIAL_FLAG_IGNOREZ = 32768
+local depthFreeReticles = {}
+
+-- Toggling cam.IgnoreZ inside the viewmodel pass leaves the bonemerged c_hands, drawn after it, behind the gun.
+-- The reticle material skips the depth test itself instead, so the pass's depth state is never changed.
+local function getDepthFreeReticle(attachment)
+	local material = attachment._reticle
+	if not depthFreeReticles[material] then
+		material:SetInt("$flags", bit.bor(material:GetInt("$flags") or 0, MATERIAL_FLAG_IGNOREZ))
+		depthFreeReticles[material] = true
+	end
+
+	return material
+end
 
 function SWEP:DrawCotzReticleSprite(attachment, aimPos, aimAng, pattern)
 	if not self:isAiming() then return end
@@ -1013,11 +1048,9 @@ function SWEP:DrawCotzReticleSprite(attachment, aimPos, aimAng, pattern)
 	local distance = math.min(math.abs(difference - 1) * math.sqrt(2), RETICLE_FADE)
 	color.a = (1 - distance / RETICLE_FADE) * 255
 
-	cam.IgnoreZ(true)
-		render.SetMaterial(attachment._reticle)
-		render.DrawSprite(position, size, size, color)
-		render.DrawSprite(position, size, size, color)
-	cam.IgnoreZ(false)
+	render.SetMaterial(getDepthFreeReticle(attachment))
+	render.DrawSprite(position, size, size, color)
+	render.DrawSprite(position, size, size, color)
 end
 
 function SWEP:getDifferenceToAimPos(pos, ang, vertDependance, horDependance, dependMod)
@@ -1320,14 +1353,31 @@ end
 
 local cw_alternative_vm_pos = GetConVar("cw_alternative_vm_pos")
 
+local STUDIO_LOOPING_FLAG = 1
+
 -- Looping idle sequences contain a built-in breathing sway. Hold them at their rest pose while aiming
 -- so the sights stay steady, and let them play again once the player stops aiming.
 function SWEP:suppressIdleSwayWhileAiming(vm)
 	local idle = self.Animations and self.Animations.idle
-	local sequence = vm:GetSequenceName(vm:GetSequence())
+	local sequenceID = vm:GetSequence()
+	local sequence = vm:GetSequenceName(sequenceID)
 	local isIdle = sequence == idle or (type(idle) == "table" and table.HasValue(idle, sequence))
 
 	if not isIdle then
+		self.idleSwayFrozen = nil
+		return
+	end
+
+	-- Some weapons use the final pose of a one-shot reload as their idle.
+	local model = vm:GetModel()
+	if self.idleSwaySequenceID ~= sequenceID or self.idleSwayModel ~= model then
+		self.idleSwaySequenceID = sequenceID
+		self.idleSwayModel = model
+		local info = vm:GetSequenceInfo(sequenceID)
+		self.idleSwayLoops = info and bit.band(info.flags, STUDIO_LOOPING_FLAG) ~= 0
+	end
+
+	if not self.idleSwayLoops then
 		self.idleSwayFrozen = nil
 		return
 	end
@@ -1359,7 +1409,11 @@ function SWEP:performViewmodelMovement()
 	self.IsReloading = (self.Sequence == self.Animations.reload or self.Sequence == self.Animations.reload_empty or self.Sequence == self.Animations.reload_start or self.Sequence == self.Animations.reload_end)
 
 	if not self.IsReloading then
-		self.IsReloading = self.Sequence:find("insert")
+		self.IsReloading = self.Sequence == self.Animations.insert
+			or self.Sequence == self.Animations.reload_start_empty
+			or self.Sequence == self.Animations.reload_end_empty
+			or self.Sequence == self.Animations.insert_empty
+			or self.Sequence:find("insert")
 	end
 
 	if not self.IsReloading then
@@ -1787,7 +1841,15 @@ local function drawWorldAttachment(weapon, data, name, active, muzzle, scale)
 	local offset = worldAttachmentOffset(data.origPos, weapon.AttachmentPosDependency, name, active)
 	local rotation = worldAttachmentOffset(data.origAng, weapon.AttachmentAngDependency, name, active)
 	local pos, ang = offsetAttachment(bone.pos, Angle(bone.ang.p, bone.ang.y, bone.ang.r), offset, rotation)
-	pos, ang = LocalToWorld(pos * scale, ang, muzzle.Pos, muzzle.Ang)
+
+	-- Optional fit of the viewmodel muzzle frame inside the worldmodel's (WorldAttachmentShift, WorldAttachmentAngle).
+	pos = pos * scale
+	local shift, turn = weapon.WorldAttachmentShift, weapon.WorldAttachmentAngle
+	if shift or turn then
+		pos, ang = LocalToWorld(pos, ang, shift or vector_origin, turn or angle_zero)
+	end
+
+	pos, ang = LocalToWorld(pos, ang, muzzle.Pos, muzzle.Ang)
 
 	model:SetPos(pos)
 	model:SetAngles(ang)
@@ -1801,12 +1863,23 @@ function SWEP:DrawWorldAttachments(worldModel)
 	local active = getWorldAttachmentSelection(self)
 	if not next(active) then return end
 
-	local muzzle = getAttachmentPoint(worldModel, "muzzle", self.WorldMuzzleAttachmentID)
+	local muzzle
+	if self.WorldAttachmentBone then
+		local bone = worldModel:LookupBone(self.WorldAttachmentBone)
+		local matrix = bone and worldModel:GetBoneMatrix(bone)
+		if matrix then
+			muzzle = {Pos = matrix:GetTranslation(), Ang = matrix:GetAngles()}
+		end
+	else
+		muzzle = getAttachmentPoint(worldModel, "muzzle", self.WorldMuzzleAttachmentID)
+	end
 	if not muzzle then return end
 
-	-- The Anomaly pairs have the same muzzle axes, but their viewmodels can be larger.
-	local scale = 1
-	local distance = source.distance and getMuzzleDistance(worldModel, muzzle)
+	-- The Anomaly pairs have the same muzzle axes, but their viewmodels can be larger. A weapon that measured
+	-- its own pair (docs/attachments/weapon_fit.py) names the scale; the muzzle-to-wpn_body estimate is wrong
+	-- when that bone is not at the same place of both models.
+	local scale = self.WorldAttachmentScale or 1
+	local distance = not self.WorldAttachmentScale and source.distance and getMuzzleDistance(worldModel, muzzle)
 	if distance and source.distance > 0 then
 		scale = math.Clamp(distance / source.distance, 0.5, 1.5)
 	end

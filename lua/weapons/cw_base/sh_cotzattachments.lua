@@ -6,18 +6,24 @@ local FALLBACK_SOUNDS = {
 	md_saker = "CW_G3A3_FIRE_SUPPRESSED",
 }
 
+-- zoom is the full-screen FOV change. lensZoom is the lighter view zoom while the lens renders the magnified scene.
 local SCOPES = {
 	cw_anomaly_1p29 = {
 		zoom = 67.5,
+		lensZoom = 15,
 		reticleCenter = {0, -1.25 / 2048},
 		overlay = "models/flaymi/stalker/anomaly/attachments/wpn_crosshair_1p29",
 	},
 	cw_anomaly_mosin = {
 		zoom = 64.3,
+		lensZoom = 15,
 		reticleCenter = {-0.5 / 1024, -3.5 / 1024},
 		overlay = "models/flaymi/stalker/anomaly/attachments/wpn_crosshair_mosin",
 	},
 }
+
+-- Matches the FOV that CW's zoom amounts are measured against.
+local SIMPLE_BASE_FOV = 90
 
 local ALIGN_FIELDS = {
 	md_acog = "ACOGAxisAlign",
@@ -30,6 +36,9 @@ local OPTIC_VIEW_FIELDS = {
 	"AimOverlay", "DrawBlackBarsOnAim", "ScaleOverlayToScreenHeight", "StretchOverlayToScreen",
 	"MoveWepAwayWhenAiming", "InstantDissapearOnAim",
 }
+
+-- Saved separately: CW optics such as the PSO-1 set these in attachFunc, before the COTZ sight view applies.
+local LENS_VIEW_FIELDS = {"SimpleTelescopicsFOV", "ZoomTextures"}
 
 local poses
 if CLIENT then
@@ -76,12 +85,22 @@ end
 local function scopeFallback(definition, scope)
 	local fallback = table.Copy(definition)
 	fallback.aimPos = {definition.name .. "Pos", definition.name .. "Ang"}
-	fallback.FOVModifier = scope.zoom
+	fallback.FOVModifier = scope.lensZoom or scope.zoom
 	fallback.attachFunc = nil
 	fallback.detachFunc = nil
 	if CLIENT then
 		fallback.overlay = surface.GetTextureID(scope.overlay)
 		fallback.reticleCenter = scope.reticleCenter
+		if scope.lensZoom then
+			-- Complex telescopics draw into the lens; simple telescopics keep the full-screen reticle.
+			fallback.lensScope = {
+				zoom = SIMPLE_BASE_FOV / (SIMPLE_BASE_FOV - scope.zoom),
+				simpleZoom = scope.zoom,
+				reticlePath = scope.overlay,
+				reticleCenter = scope.reticleCenter,
+				zoomTextures = {{tex = fallback.overlay, offset = {0, 0}, center = scope.reticleCenter}},
+			}
+		end
 	end
 
 	return fallback
@@ -108,7 +127,16 @@ function SWEP:ApplyCotzSightView(attachment)
 	self.cotzSightView = view
 	self.cotzSight = attachment.name
 
-	if attachment.overlay then
+	local lens = attachment.lensScope
+	if lens then
+		for _, field in ipairs(LENS_VIEW_FIELDS) do
+			view[field] = self[field]
+		end
+		self.cotzLensScope = lens
+		self.SimpleTelescopicsFOV = lens.simpleZoom
+		self.ZoomTextures = lens.zoomTextures
+		self.ScaleOverlayToScreenHeight = true
+	elseif attachment.overlay then
 		self.AimOverlay = attachment.overlay
 		self.cotzScopeReticleCenter = attachment.reticleCenter
 		self.DrawBlackBarsOnAim = true
@@ -123,6 +151,12 @@ function SWEP:ResetCotzSightView(attachment)
 	for _, field in ipairs(OPTIC_VIEW_FIELDS) do
 		self[field] = self.cotzSightView[field]
 	end
+	if self.cotzLensScope then
+		for _, field in ipairs(LENS_VIEW_FIELDS) do
+			self[field] = self.cotzSightView[field]
+		end
+	end
+	self.cotzLensScope = nil
 	self.cotzSightView = nil
 	self.cotzSight = nil
 	self.cotzScopeReticleCenter = nil
@@ -190,7 +224,7 @@ end
 
 function SWEP:ApplyCotzAttachmentProfile()
 	local class = self:GetClass()
-	local profile = PROFILES.weapons[class]
+	local profile = PROFILES.GetForModel(class, self.ViewModel)
 	if not profile or self.cotzAttachmentDefinitions then return end
 
 	local suppressor = profile.suppressor
@@ -226,7 +260,7 @@ function SWEP:ApplyCotzAttachmentProfile()
 	end
 
 	if CLIENT then
-		addModels(self, class)
+		addModels(self, PROFILES.GetSourceClass(class))
 	end
 	if self.ApplyAnomalyAttachments then
 		applyAnomalyAdapters(self, suppressor)

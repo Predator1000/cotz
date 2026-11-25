@@ -131,6 +131,8 @@ SWEP.ViewModelFOV	= 50
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/weapons/tfa_ins2/wpn_tkpd_hud_v.mdl"
 SWEP.WorldModel		= "models/weapons/tfa_ins2/wpn_tkpd_w.mdl"
+SWEP.WorldAttachmentScale = 0.654
+SWEP.WorldAttachmentShift = Vector(-0.02, -0.18, 0.99)
 SWEP.DrawTraditionalWorldModel = false
 SWEP.ADSFireAnim = false
 SWEP.WM = "models/weapons/tfa_ins2/wpn_tkpd_w.mdl"
@@ -166,10 +168,10 @@ SWEP.DeployTime = 1
 SWEP.RecoilToSpread = 0.8
 
 SWEP.ReloadSpeed = 1.10
-SWEP.ReloadTime = 2.35
-SWEP.ReloadTime_Empty = 3.8
-SWEP.ReloadHalt = 0.1
-SWEP.ReloadHalt_Empty = 0.1
+SWEP.ReloadTime = 3.97
+SWEP.ReloadTime_Empty = 3.97
+SWEP.ReloadHalt = 3.97
+SWEP.ReloadHalt_Empty = 3.97
 SWEP.SnapToIdlePostReload = true
 
 if CLIENT then

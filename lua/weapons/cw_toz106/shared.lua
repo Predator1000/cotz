@@ -106,6 +106,7 @@ SWEP.ViewModelFOV	= 55
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/weapons/arc9/darsu_eft/c_toz106.mdl"
 SWEP.WorldModel		= "models/weapons/arc9/darsu_eft/w_toz106.mdl"
+SWEP.WorldAttachmentScale = 1
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -136,10 +137,10 @@ SWEP.Damage = 75
 SWEP.DeployTime = 1
 
 SWEP.ReloadSpeed = 1
-SWEP.ReloadTime = 2.8
-SWEP.ReloadTime_Empty = 3
-SWEP.ReloadHalt = 3.4
-SWEP.ReloadHalt_Empty = 4.7
+SWEP.ReloadTime = 3.5
+SWEP.ReloadTime_Empty = 4.75
+SWEP.ReloadHalt = 3.5
+SWEP.ReloadHalt_Empty = 4.75
 
 SWEP.Chamberable = true
 

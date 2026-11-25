@@ -36,6 +36,10 @@ actions declare the greyscale path as their `icon`; the inventory menu tints it 
 `ix.cotzIcons.SetMenuImage`. The original-colour (gold) tints are reserved for menu buttons; tooltips and
 other panels tint greyscale icons with the teal `ix.cotzIcons.propertyColor`.
 
+`schema/libs/sh_suitappearance.lua` and `sv_suitappearance.lua` own `ix.suitAppearance`: worn suit
+models, finishes and named bodygroups, the shared vest-based skin lists, and the load-time migration
+of characters from the legacy playermodels. See [suit playermodels](suit-playermodels.md).
+
 `schema/libs/sh_economystats.lua` owns persistent per-character cash-flow counters and the admin
 scoreboard field list. Transaction owners record successful cash payments; simplecrossserverdata
 sends summaries only to administrators. See its [economy dossier guide](../gamemodes/ix_cotz/plugins/simplecrossserverdata/README.md#administrator-economy-dossier).
@@ -113,6 +117,24 @@ four salvage families, the reviewed firearm tier catalogue, fixed recipes, durab
 condition-sensitive dismantling and acknowledged pending output delivery. Its two concrete item
 folders remain at immediate discovery depth. Technician dialogue is installed after plugins load;
 ordinary weapon cleaning stays in progression services. See the [workshop guide](../gamemodes/ix_cotz/plugins/weaponservice/README.md).
+
+CW firearms select `reload_empty` when the clip starts at zero and `reload` when rounds remain.
+Models with one reload sequence share its timing. Set `ReloadTime` and `ReloadHalt` (and their
+`_Empty` counterparts) from the point where the corresponding model sequence returns the weapon
+to its ready pose. Enter these values at normal playback speed. The base applies `ReloadSpeed`.
+
+Use separate authored sequences where the model has them. When both sequences use the same
+motion and the chambering action has matching entry and exit poses, `ReloadChamberCuts` can
+omit that motion when rounds remain. Index cuts by the actual sequence name and set `from` and
+`to` in model seconds. The base removes that interval from ammo, fire, and viewmodel timing.
+For a single composite reload sound at time zero, it also stops the recording at `from` or at the
+optional `soundEnd` before the chambering cue. Validate the magazine is seated before the cut.
+
+Round-by-round loaders can declare `reload_start_empty`, `insert_empty`, and `reload_end_empty` for
+models with different stages. Set `ReloadStartTime_Empty` and `ReloadFinishWait_Empty` for the
+corresponding sequences. The server credits each round when its insert animation finishes.
+`ReloadStartLoadsRound_Empty` counts a round inserted by the opening animation. Set
+`ReloadStartChambersRound_Empty` if that animation also chambers the round.
 
 `gearcustomization/` owns the vendor appearance service, shared appearance API, menu
 and icon rendering. Concrete `gear` and `newbags` items declare approved variants.

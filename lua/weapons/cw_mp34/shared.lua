@@ -113,6 +113,9 @@ SWEP.ZoomAmount = 15
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/khrcw2/doipack/mp34.mdl"
 SWEP.WorldModel		= "models/khrcw2/doipack/w_mp34.mdl"
+SWEP.WorldAttachmentScale = 1.45
+SWEP.WorldAttachmentShift = Vector(-0.55, -0.2, -0.02)
+SWEP.WorldAttachmentAngle = Angle(0, 0, -99.24)
 
 SWEP.DrawTraditionalWorldModel = false
 SWEP.WM = "models/khrcw2/doipack/w_mp34.mdl"
@@ -161,10 +164,10 @@ SWEP.BurstCooldownMul = 3
 SWEP.RecoilToSpread = .77
 
 SWEP.ReloadSpeed = 1.325
-SWEP.ReloadTime = 2.5
-SWEP.ReloadHalt = 3.6
-SWEP.ReloadTime_Empty = 3.5
-SWEP.ReloadHalt_Empty = 4.6	
+SWEP.ReloadTime = 3.67
+SWEP.ReloadHalt = 3.67
+SWEP.ReloadTime_Empty = 4.67
+SWEP.ReloadHalt_Empty = 4.67
 
 SWEP.NearWallEnabled = false
 

@@ -148,6 +148,9 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/weapons/v_smg_mac11.mdl"
 SWEP.WorldModel		= "models/weapons/w_uzi.mdl"
+SWEP.WorldAttachmentScale = 1.532
+SWEP.WorldAttachmentShift = Vector(-1.36, -0.35, -0.64)
+SWEP.WorldAttachmentAngle = Angle(85.64, 99.77, 10.21)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -175,9 +178,9 @@ SWEP.Damage = 56
 SWEP.DeployTime = 0.45
 
 SWEP.ReloadSpeed = 1
-SWEP.ReloadTime = 1.79
-SWEP.ReloadTime_Empty = 2.26
-SWEP.ReloadHalt = 2
-SWEP.ReloadHalt_Empty = 3
+SWEP.ReloadTime = 3.14
+SWEP.ReloadTime_Empty = 3.14
+SWEP.ReloadHalt = 3.14
+SWEP.ReloadHalt_Empty = 3.14
 
 SWEP.SnapToIdlePostReload = true

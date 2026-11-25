@@ -138,6 +138,9 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= true
 SWEP.ViewModel		= "models/cw2/smgs/mp5.mdl"
 SWEP.WorldModel		= "models/weapons/w_tfa_dmm5k.mdl"
+SWEP.WorldAttachmentScale = 0.902
+SWEP.WorldAttachmentShift = Vector(-2.87, 0.54, -0.57)
+SWEP.WorldAttachmentAngle = Angle(2.97, -0.26, 1.64)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -167,10 +170,10 @@ SWEP.Damage = 46
 SWEP.DeployTime = 0.8
 
 SWEP.ReloadSpeed = 1.4
-SWEP.ReloadTime = 2
-SWEP.ReloadTime_Empty = 2.2
-SWEP.ReloadHalt = 2.6
-SWEP.ReloadHalt_Empty = 3.5
+SWEP.ReloadTime = 2.64
+SWEP.ReloadTime_Empty = 3.47
+SWEP.ReloadHalt = 2.64
+SWEP.ReloadHalt_Empty = 3.47
 
 function SWEP:IndividualInitialize()
 	self:setBodygroup( 1 , 2 )

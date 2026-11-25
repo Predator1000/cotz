@@ -121,6 +121,8 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/weapons/v_pist_500.mdl"
 SWEP.WorldModel		= "models/weapons/w_erect_re500.mdl"
+SWEP.WorldAttachmentScale = 0.755
+SWEP.WorldAttachmentAngle = Angle(0, -0.01, -94.04)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -148,11 +150,11 @@ SWEP.DeployTime = 0.7
 SWEP.Chamberable = false
 
 SWEP.ReloadSpeed = 1.1
-SWEP.ReloadTime = 3.4
-SWEP.ReloadHalt = 3.5
+SWEP.ReloadTime = 3.67
+SWEP.ReloadHalt = 3.67
 
-SWEP.ReloadTime_Empty = 3.4
-SWEP.ReloadHalt_Empty = 3.5
+SWEP.ReloadTime_Empty = 3.67
+SWEP.ReloadHalt_Empty = 3.67
 
 SWEP.WearDamage = 0.14
 SWEP.WearEffect = 0.05

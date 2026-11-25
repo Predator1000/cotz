@@ -124,6 +124,9 @@ SWEP.ViewModelFlip	= false
 SWEP.UseHands = true
 SWEP.ViewModel		= "models/weapons/v_fc4_700nitro.mdl"
 SWEP.WorldModel		= "models/weapons/w_fc4_700nitro_fixed.mdl"
+SWEP.WorldAttachmentScale = 0.912
+SWEP.WorldAttachmentShift = Vector(6.08, 1.29, 0.85)
+SWEP.WorldAttachmentAngle = Angle(-0.01, 0.9, -89.99)
 SWEP.DrawTraditionalWorldModel = false
 SWEP.WM = "models/weapons/w_fc4_700nitro_fixed.mdl"
 SWEP.WMPos = Vector(0, 0.7, -0.5)
@@ -157,10 +160,10 @@ SWEP.WearDamage = 0.33
 SWEP.WearEffect = 0.005
 
 SWEP.ReloadSpeed = 0.6
-SWEP.ReloadTime = 3
-SWEP.ReloadTime_Empty = 3
-SWEP.ReloadHalt = 3.05
-SWEP.ReloadHalt_Empty = 3.05
+SWEP.ReloadTime = 3.55
+SWEP.ReloadTime_Empty = 3.54
+SWEP.ReloadHalt = 3.55
+SWEP.ReloadHalt_Empty = 3.54
 SWEP.Knockback = 250
 
 function SWEP:postPrimaryAttack()

@@ -139,6 +139,9 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/cw2/shotguns/m3.mdl"
 SWEP.WorldModel		= "models/weapons/w_cstm_m3super90.mdl"
+SWEP.WorldAttachmentScale = 1.245
+SWEP.WorldAttachmentShift = Vector(0.03, -0.19, -0.1)
+SWEP.WorldAttachmentAngle = Angle(0, -0.01, -90)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -166,8 +169,8 @@ SWEP.Shots = 9
 SWEP.Damage = 42
 SWEP.DeployTime = 1
 
-SWEP.ReloadStartTime = 0.3
-SWEP.InsertShellTime = 0.6
+SWEP.ReloadStartTime = 0.38
+SWEP.InsertShellTime = 0.5
 SWEP.ReloadFinishWait = 1.2
 SWEP.ShotgunReload = true
 

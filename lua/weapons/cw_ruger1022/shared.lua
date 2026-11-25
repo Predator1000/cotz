@@ -152,6 +152,9 @@ SWEP.ViewModelFOV	= 50
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/weapons/tfa_nmrih/v_fa_ruger1022.mdl"
 SWEP.WorldModel		= "models/weapons/tfa_nmrih/w_fa_ruger1022.mdl"
+SWEP.WorldAttachmentScale = 0.893
+SWEP.WorldAttachmentShift = Vector(0.05, -0.12, -0.25)
+SWEP.WorldAttachmentAngle = Angle(-0.01, -0.01, -90)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -182,10 +185,10 @@ SWEP.DeployTime = 0.6
 
 
 SWEP.ReloadSpeed = 1.5
-SWEP.ReloadTime = 2.3
-SWEP.ReloadTime_Empty = 3.75
-SWEP.ReloadHalt = 2.5
-SWEP.ReloadHalt_Empty = 3.9
+SWEP.ReloadTime = 2.87
+SWEP.ReloadTime_Empty = 4.17
+SWEP.ReloadHalt = 2.87
+SWEP.ReloadHalt_Empty = 4.17
 
 SWEP.SnapToIdlePostReload = true
 

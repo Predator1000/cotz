@@ -10,6 +10,16 @@ ix.lang.AddTable("english", {
 	optLegsInVehicle = "Enable legs in vehicles"
 })
 
+if (SERVER) then
+	util.AddNetworkString("cotz/legs/refresh")
+
+	-- Tells a player's client to rebuild its first-person legs after a suit equip, unequip, or repaint.
+	function PLUGIN:RefreshLegs(client)
+		net.Start("cotz/legs/refresh")
+		net.Send(client)
+	end
+end
+
 if (CLIENT) then
 	ix.option.Add("legsEnabled", ix.type.bool, true, {
 		category = "legs"
@@ -284,6 +294,17 @@ if (CLIENT) then
 			end
 		end
 	end
+
+	-- Suit skins and bodygroups are set server-side and may arrive after PlayerModelChanged, or without
+	-- any model change at all (Technut repaints), so rebuild once after the networked values settle.
+	net.Receive("cotz/legs/refresh", function()
+		timer.Simple(0.3, function()
+			if (IsValid(LocalPlayer()) and IsValid(Legs.LegEnt)) then
+				Legs:Setup()
+				Legs:FixBones()
+			end
+		end)
+	end)
 
 	function PLUGIN:PlayerModelChanged(client, model)
 		if (client == LocalPlayer()) then

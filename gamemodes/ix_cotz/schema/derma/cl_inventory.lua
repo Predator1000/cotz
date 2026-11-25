@@ -377,16 +377,32 @@ function PANEL:ExtraPaint(width, height) end
 local blackCol = Color(0, 0, 0, 85)
 local yellowCol = Color(255, 192, 0, 20)
 local purpleCol = Color(127, 0, 255, 20)
-local greenCol = Color(80, 200, 100, 20)
+local HIDEOUT_COLOR = Color(225, 85, 85)
+local HIDEOUT_BACKGROUND = ColorAlpha(HIDEOUT_COLOR, 20)
 local gradientMat = Material("vgui/gradient-u")
 local gradientLMat = Material("vgui/gradient-l")
 local gradientRMat = Material("vgui/gradient-r")
 
-function PANEL:Paint(width, height)
-	surface.SetDrawColor(blackCol)
-	surface.DrawRect(2, 2, width - self:GetWide() * 0.002, height - self:GetWide() * 0.002)
+local function getUpgradeItemHideouts(uniqueID)
+	local hideouts = ix.plugin.Get("hideouts")
 
+	return hideouts and hideouts:GetUpgradeItemHideouts(uniqueID)
+end
+
+function PANEL:Paint(width, height)
 	local itemTable = self.itemTable
+	local upgradeHideouts = itemTable and itemTable.uniqueID and getUpgradeItemHideouts(itemTable.uniqueID)
+
+	local inset = self:GetWide() * 0.002
+	surface.SetDrawColor(blackCol)
+	surface.DrawRect(2, 2, width - inset, height - inset)
+
+	if upgradeHideouts then
+		surface.SetDrawColor(HIDEOUT_BACKGROUND)
+		surface.SetMaterial(gradientRMat)
+		surface.DrawTexturedRect(width * 0.5 + 2, 2, width * 0.5 - inset, height - inset)
+	end
+
 	local parent = self:GetParent()
 
 	if itemTable and itemTable.uniqueID then
@@ -641,10 +657,9 @@ function PANEL:SetInventory(inventory, bFitParent)
 										self.highlightContacts.Progression[item.uniqueID], purpleCol)
 								end
 							end
-							local hideouts = ix.plugin.Get("hideouts")
-							local upgradeHideouts = hideouts and hideouts:GetUpgradeItemHideouts(item.uniqueID)
+							local upgradeHideouts = getUpgradeItemHideouts(item.uniqueID)
 							if upgradeHideouts then
-								addRequirementContacts(tooltip, "Hideout", upgradeHideouts, greenCol)
+								addRequirementContacts(tooltip, "Hideout", upgradeHideouts, HIDEOUT_COLOR)
 							end
 							tooltip:SizeToContents()
 						end)

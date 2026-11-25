@@ -1,9 +1,18 @@
 # Anomaly model reskins
 
-COTZ weapons with a counterpart in the Anomaly CW2.0 conversion (in `cotz_general` and
-`cotz_wepmats`) use its view model, world model, sounds and item icon while keeping their COTZ class,
-item IDs, balance, ammunition and attachment slots. Saved weapons and loot tables are unaffected.
-The conversion content must be installed.
+The 61 converted COTZ firearms are available side by side with their legacy counterparts. In the
+Garry's Mod Weapons spawn menu, administrators can find the test SWEPs under **Anomaly Reskins**.
+The Helix items use the same category. For example, a superadmin can give the test MP5 to a
+character with `/CharGiveItem "Character Name" anomaly_reskin_mp5`. The test SWEP class is
+`cw_cotz_anomaly_mp5`. Use the new item IDs to distinguish the test versions by name.
+
+The legacy firearms keep their existing class and item IDs. The reskins share the existing CW base
+and their Anomaly attachment profiles. Test items are excluded from Helix business and have no loot,
+vendor, or progression entries. See the [original backup](../archive/weapon-reskins/anomaly-2026-11-24/README.md)
+or the [standalone Anomaly catalogue](anomaly-debug-items.md).
+
+The sections below document the conversion. It uses models and sounds from
+`cotz_general` and materials from `cotz_wepmats` while retaining the COTZ class and item IDs.
 
 ## Weapon reskin
 
@@ -35,6 +44,13 @@ render target. A client-side override on the lens replaces the TFA material prox
 the magnified scene and reticle in the lens. The simple telescopics option keeps the full-screen scope
 overlay. Weapons with their own CW scope renderer, such as the VSSK, keep that renderer.
 
+The USP-1 "Tulip" (`cw_anomaly_1p29`) and PU scope (`cw_anomaly_mosin`) on COTZ guns work the same way through
+their attachment models' `lense_rt` slots, configured by `lensZoom` in `SCOPES` (`sh_cotzattachments.lua`). They
+switch to the full-screen reticle with simple telescopics or the gun's backup iron sights.
+
+The Tulip and PU scope inventory items use the PSO-1 model, the same dropped model as the ACOG item. For Anomaly attachment world models
+without a collision mesh, dropped items use the model's compiled hull for collision (`ix_item.lua`).
+
 ```sh
 python3 docs/anomaly/reskin_weapons.py --dry-run
 python3 docs/anomaly/reskin_weapons.py --base HEAD   # regenerate from committed sources
@@ -49,7 +65,7 @@ python3 docs/anomaly/reskin_weapons.py --base HEAD   # regenerate from committed
 
 ## Attachments
 
-Every Anomaly viewmodel has the same `wpn_body` bone orientation. `docs/anomaly/attachment_spec.py` writes
+Every Anomaly viewmodel has the same `wpn_body` bone orientation, but not every one animates it: on the AEK-971, AK-12 and AKS-74U it stays put while `body` carries the gun, so those sights were moved to `body` with `weapon_fit.py rebone` (see [attachment placement](attachment-placement.md#attachment-bones)). Run `weapon_fit.py bones all` after regenerating the reskins. `docs/anomaly/attachment_spec.py` writes
 a spec (and exports the pre-reskin weapons from git as donors) for the offline placement runner, which
 places one anchor sight per gun and lets the placement tool add the others from hand-placed donors,
 fitting every aim offline:
@@ -112,13 +128,23 @@ list with the placed sights and removes dropped sights and foregrips from the we
 `ITEM.validAttachments`. `offline_placement.lua inspect SPEC CLASS...` prints each model's mesh center
 next to the gun's `wpn_body`, `wpn_scope` and muzzle for a quick check.
 
-The c_hands conversions in `cotz_general` (formerly the `cotz_weapon_chands` addon) replace listed
-viewmodels with c_hands conversions of the old models; it skips guns whose viewmodel is under
-`models/flaymi/anomaly/` so the reskins keep their Anomaly models.
+### Compiled grips for regular COTZ firearms
+
+Mount the updated `cotz_general` on the server and clients, then restart both. It contains 112 fitted
+first-person rigs for 130 regular COTZ CW2.0 classes. The [model map](../lua/cotz_weapon_chands/sh_rigged_models.lua)
+selects the gun-specific names for legacy conversions in `models/cotz/chands/`. The other rigs
+load at their existing model paths. Grip and sleeve adjustments live in the models' c_hands
+animation tracks. CW draws the suit-selected hands, with the novice loner hands used as the fitting reference.
+The short TOZ-34 sits farther forward in ironsights so its close-up sleeves clear the viewmodel near plane.
+
+The 9A-91 and VSSK Anomaly test variants share the updated model paths. Older copies of `cotz_general`
+load their hashed legacy conversions and Lua grip profiles.
 
 ## Verification
 
-Standalone checks: `tests/run.sh anomaly_reskin attachment_apply attachment_placement`. Offline aim fits
+Run `tests/run.sh anomaly_reskin attachment_apply attachment_placement weapon_hands weapon_grips`. Offline aim fits
 reproduce the hand-tuned ACOG aims on the old guns to within about 0.005 units. In game, check each
 reskinned gun's sight pictures, how attachments sit on the model, reload speed, the back-slot PAC
-position and the inventory icon.
+position and the inventory icon. Check hand contact during hip fire, clearance around the front post
+and rear notch in ADS, and partial and empty reloads. Repeat with light sleeves and bulky gloves.
+Switch between CW and a stock c_hands weapon to check that the hands follow the current viewmodel.

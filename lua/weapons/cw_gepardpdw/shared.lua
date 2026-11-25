@@ -139,6 +139,7 @@ SWEP.ViewModelFOV	= 70
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/weapons/tfa_l4d2/c_gepard.mdl"
 SWEP.WorldModel		= "models/weapons/tfa_l4d2/w_gepard.mdl"
+SWEP.WorldAttachmentScale = 1
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -168,9 +169,9 @@ SWEP.Damage = 75
 SWEP.DeployTime = 0.45
 
 SWEP.ReloadSpeed = 1
-SWEP.ReloadTime = 2.0
-SWEP.ReloadTime_Empty = 2.0
-SWEP.ReloadHalt = 2.3
-SWEP.ReloadHalt_Empty = 2.3
+SWEP.ReloadTime = 2.5
+SWEP.ReloadTime_Empty = 2.5
+SWEP.ReloadHalt = 2.5
+SWEP.ReloadHalt_Empty = 2.5
 
 SWEP.SnapToIdlePostReload = false

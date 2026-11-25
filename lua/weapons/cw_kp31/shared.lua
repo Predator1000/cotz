@@ -109,6 +109,9 @@ SWEP.ZoomAmount = 15
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/khrcw2/doipack/suomi.mdl"
 SWEP.WorldModel		= "models/khrcw2/doipack/w_suomi.mdl"
+SWEP.WorldAttachmentScale = 1.507
+SWEP.WorldAttachmentShift = Vector(5.89, 0.14, 0.05)
+SWEP.WorldAttachmentAngle = Angle(-0.14, -0.14, 0)
 
 SWEP.DrawTraditionalWorldModel = false
 SWEP.WM = "models/khrcw2/doipack/w_suomi.mdl"
@@ -151,10 +154,10 @@ SWEP.ADSFireAnim = true
 SWEP.RecoilToSpread = .7
 
 SWEP.ReloadSpeed = 1
-SWEP.ReloadTime = 1.775
-SWEP.ReloadHalt = 2.3
-SWEP.ReloadTime_Empty = 3.1
-SWEP.ReloadHalt_Empty = 3.8
+SWEP.ReloadTime = 2.4
+SWEP.ReloadHalt = 2.4
+SWEP.ReloadTime_Empty = 3.87
+SWEP.ReloadHalt_Empty = 3.87
 
 SWEP.DurabilityDamageChance = 0.005
 SWEP.WearDamage = 0.05

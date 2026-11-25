@@ -151,6 +151,9 @@ SWEP.ViewModelFOV	= 50
 SWEP.ViewModelFlip	= false
 SWEP.ViewModel		= "models/weapons/v_tfa_mini14.mdl"
 SWEP.WorldModel		= "models/weapons/w_tfa_mn14_classic_hd.mdl"
+SWEP.WorldAttachmentScale = 0.861
+SWEP.WorldAttachmentShift = Vector(1.98, 0.49, -1.42)
+SWEP.WorldAttachmentAngle = Angle(-10.63, -178.45, 85.62)
 
 SWEP.Spawnable			= true
 SWEP.AdminSpawnable		= true
@@ -181,10 +184,10 @@ SWEP.DeployTime = 0.6
 
 
 SWEP.ReloadSpeed = 1
-SWEP.ReloadTime = 3.8
-SWEP.ReloadTime_Empty = 3.8
-SWEP.ReloadHalt = 4
-SWEP.ReloadHalt_Empty = 4
+SWEP.ReloadTime = 3.34
+SWEP.ReloadTime_Empty = 3.94
+SWEP.ReloadHalt = 3.34
+SWEP.ReloadHalt_Empty = 3.94
 
 SWEP.SnapToIdlePostReload = true
 
