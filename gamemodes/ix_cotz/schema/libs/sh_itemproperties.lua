@@ -8,10 +8,16 @@ local UNITS = {
 	clotting = {1500, "mL/min"}, staminaRate = {1000, "µg/s"},
 	-- Protection readings are resistance fractions shown as percentages.
 	thermal = {100, "%"}, electrical = {100, "%"}, chemical = {100, "%"}, anomalous = {100, "%"},
-	ballistics = {100, "%"}, rupture = {100, "%"}, gravitational = {100, "%"},
+	ballistics = {100, "%"}, rupture = {100, "%"}, impact = {100, "%"},
 	psychic = {100, "%"}, radiation = {100, "%"},
 	distance = {1, "units"}, jumpSpeed = {1, "units/s"},
 	weight = {1, "kg"}, duration = {1, "s"}, percent = {1, "%"}, number = {1, ""},
+}
+
+-- Protection keeps one decimal, so small differences between suit variants stay visible.
+local PROTECTION_KINDS = {
+	thermal = true, electrical = true, chemical = true, anomalous = true, ballistics = true,
+	rupture = true, impact = true, psychic = true, radiation = true,
 }
 
 function ix.itemProperties.Convert(kind, value)
@@ -24,7 +30,9 @@ end
 function ix.itemProperties.Format(kind, value, signed)
 	local converted, unit = ix.itemProperties.Convert(kind, value)
 	local text
-	if (unit == "%" or unit == "%/s") and kind ~= "healthRate" then
+	if PROTECTION_KINDS[kind] then
+		text = string.format("%.1f", math.Round(converted, 1)):gsub("%.0$", "")
+	elseif (unit == "%" or unit == "%/s") and kind ~= "healthRate" then
 		text = string.format("%.0f", math.Round(converted))
 	else
 		text = string.format("%.2f", converted):gsub("0+$", ""):gsub("%.$", "")
@@ -63,6 +71,7 @@ function ix.itemProperties.GetProtection(item)
 		if (reduction == nil or reduction == 0) and (flat == nil or flat == 0) then return end
 
 		reduction = reduction or 0
+		if id ~= "radiation" then reduction = math.min(reduction, ix.suits.MAX_PROTECTION) end
 		local valueText = ix.itemProperties.Format(id, reduction)
 		if flat ~= nil then
 			valueText = valueText .. " + " .. ix.itemProperties.Format("number", math.Round(flat, 1))
@@ -83,14 +92,14 @@ function ix.itemProperties.GetProtection(item)
 		protection("ballistics", "Ballistics", reduction("getBR"), item:getFBR())
 		protection("rupture", "Rupture", reduction("getSR"), item:getFSR())
 		if item.isBodyArmor then
-			for _, definition in ipairs(ix.suits.anomalyTypes) do
+			for _, definition in ipairs(ix.suits.GetProtectionFamilies()) do
 				protection(definition.network, definition.name, reduction("getAR", definition.field),
 					item:getFAR(definition.flatField))
 			end
 		else
 			-- Installed headgear uses its broad anomaly resistance for each damage family.
 			local scale = item:GetDurabilityScale()
-			for _, definition in ipairs(ix.suits.anomalyTypes) do
+			for _, definition in ipairs(ix.suits.GetProtectionFamilies()) do
 				local value = item[definition.field]
 				local flat = item[definition.flatField]
 				protection(definition.network, definition.name, value and value * scale or item:getAR(),
@@ -103,8 +112,9 @@ function ix.itemProperties.GetProtection(item)
 		local attachment = ix.armortables.attachments[item.attachName]
 		for _, entry in ipairs({
 			{"ballistics", "Ballistics", "br", "fbr"}, {"rupture", "Rupture", "sr", "fsr"},
+			{"impact", "Impact", "ar", "far"},
 			{"thermal", "Thermal", "ar", "far"}, {"electrical", "Electrical", "ar", "far"},
-			{"chemical", "Chemical", "ar", "far"}, {"gravitational", "Gravitational", "ar", "far"},
+			{"chemical", "Chemical", "ar", "far"},
 			{"psychic", "Psychic", "pr", "fpr"}, {"radiation", "Radiation", "radProt", "flatRadProt"},
 		}) do
 			if attachment[entry[3]] or attachment[entry[4]] then

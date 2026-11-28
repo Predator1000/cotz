@@ -95,9 +95,10 @@ check(ix.progression.CanBuyItem(previousStashCharacter, "'Old Timer'", "hidestas
 check(ix.progression.CanBuyItem(previousStashCharacter, "'Old Timer'", "hidestasher_shovel"),
 	"saved shovel access survives the inserted prerequisite")
 local technut = ix.townNPCs.contacts.technut
-for _, colour in ipairs({"brown", "green", "tan"}) do
-	check(technut.catalogue["suit_trenchcoat_" .. colour].step == technut.catalogue.suit_trenchcoat_black.step,
-		"all trenchcoat colours share a purchase unlock")
+check(technut.catalogue.suit_trenchcoat.step == "v3/suits/suit_trenchcoat_black",
+	"the single trenchcoat keeps the saved purchase unlock")
+for _, colour in ipairs({"black", "brown", "green", "tan"}) do
+	check(not technut.catalogue["suit_trenchcoat_" .. colour], "retired coat colours are not sold")
 end
 local weight, rows = 0, 0
 for slug, contact in pairs(ix.townNPCs.contacts) do
@@ -219,8 +220,8 @@ ix.townNPCs:InitializeTownCharacter(old)
 check(old:GetData("townNPCProgression").pending["'Ballast'"] ~= nil, "old pending commissions remain inactive history")
 check(not ix.progression.IsCompleted(old, stepID("ballast", "hideout", "01")), "old work never completes a new branch")
 local cans = {}
-for _, package in ipairs(ix.townNPCs.contacts["spicy-lemon"].rewards.packages) do
+for _, package in ipairs(ix.townNPCs.contacts["spicy-lemon"].rewards.bonusPackages) do
 	for _, item in ipairs(package.items) do if item:match("^food_can_") then cans[item] = true end end
 end
-check(cans.food_can_tushonka and cans.food_can_sprats and cans.food_can_tuna, "Spicy Lemon's jobs cover all canned-food families")
+check(cans.food_can_tushonka and cans.food_can_sprats and cans.food_can_tuna, "Spicy Lemon's bonus rewards cover all canned-food families")
 print("PASS: " .. checks .. " town progression overhaul checks")

@@ -112,10 +112,10 @@ class ProgressionRewardsSpec(unittest.TestCase):
                     totals[step["capacity"]["kind"]] += step["capacity"]["amount"]
         self.assertEqual(totals, {"weight": 5, "rows": 2})
 
-    def test_trenchcoat_colours_share_one_step(self):
+    def test_one_trenchcoat_keeps_its_saved_purchase_step(self):
         catalogue = self.data["contacts"]["technut"]["catalogue"]
-        self.assertEqual(len({catalogue["suit_trenchcoat_" + c]["step"]
-                              for c in ("black", "brown", "green", "tan")}), 1)
+        self.assertEqual(catalogue["suit_trenchcoat"]["step"], "v3/suits/suit_trenchcoat_black")
+        self.assertFalse([item for item in catalogue if item.startswith("suit_trenchcoat_")])
 
     def test_suture_variants_exclude_looted_finishes(self):
         for item, allocation in self.data["variants"].items():
@@ -125,8 +125,8 @@ class ProgressionRewardsSpec(unittest.TestCase):
     def test_buyers_and_canned_job_rewards(self):
         for slug in ("ballast", "cleaner", "ledger"):
             self.assertTrue(self.data["contacts"][slug]["buyAll"])
-            self.assertEqual(self.data["contacts"][slug]["buyScale"], 0.3)
-        packages = self.data["contacts"]["spicy-lemon"]["rewards"]["packages"]
+            self.assertEqual(self.data["contacts"][slug]["buyScale"], 0.15)
+        packages = self.data["contacts"]["spicy-lemon"]["rewards"]["bonusPackages"]
         self.assertEqual(len({i for p in packages for i in p["items"] if i.startswith("food_can_")}), 8)
 
     def test_deferred_or_job_awarded_items_have_no_sale_route(self):

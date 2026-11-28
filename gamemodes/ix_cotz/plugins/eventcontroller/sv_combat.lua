@@ -14,13 +14,13 @@ local PURSUIT_RETRY = 1
 local PURSUIT_ARRIVAL = 64
 local APPROACH_SECONDS = 10
 local AIM_HITGROUPS = {HITGROUP_CHEST, HITGROUP_STOMACH}
-local TARGET_ABILITIES = {"isAttacking", "IsJumping", "IsLongJumping", "isBigJumping", "IsSuccing", "IsGrabbing"}
 local PREDATORS = {blinddog = true, pseudodog = true, psydog = true, cat = true, bloodsucker = true,
 	chimera = true, electrochimera = true, hellhound = true, spider = true, sprig = true}
 local PREY = {boar = true, flesh = true, tark = true, rodent = true, tushkano = true}
 local SPECIES_ALIASES = {dog = "blinddog", psydog_phantom = "psydog", rodent = "tushkano",
 	chimera_electro = "electrochimera", classiczombie = "zombie", classiczombie_babka = "zombie",
-	classiczombie_radio = "zombie", classiczombie_volatile = "zombie"}
+	classiczombie_radio = "zombie", classiczombie_volatile = "zombie", bloodsucker_swamp = "bloodsucker",
+	poltergeist_fire = "poltergeist", poltergeist_electro = "poltergeist", poltergeist_tele = "poltergeist"}
 
 PLUGIN.combatActors = {}
 PLUGIN.combatPacks = {}
@@ -41,12 +41,7 @@ local function cellKey(position)
 end
 
 local function targetBusy(actor)
-	if actor.PlayingAnimation then return true end
-	for _, field in ipairs(TARGET_ABILITIES) do
-		if (actor[field] or 0) ~= 0 then return true end
-	end
-
-	return false
+	return actor.PlayingAnimation == true or actor.cotzAbility ~= nil
 end
 
 function PLUGIN:IsCombatActor(entity)
@@ -68,7 +63,7 @@ local function hitboxAimPosition(enemy, hitbox, hitboxSet)
 	return matrix * ((mins + maxs) * 0.5)
 end
 
-local function enemyAimPosition(enemy)
+function PLUGIN:GetHumanAimPosition(enemy)
 	local hitboxSet = enemy:GetHitboxSet()
 	if hitboxSet == nil then return enemy:WorldSpaceCenter() end
 	local hitboxCount = enemy:GetHitBoxCount(hitboxSet) or 0
@@ -100,7 +95,9 @@ function PLUGIN:EntityFireBullets(entity, data)
 	if not living(enemy) then return end
 	if not self:CanActorAttack(entity, enemy) then return false end
 
-	data.Dir = (enemyAimPosition(enemy) - data.Src):GetNormalized()
+	if entity.cotzManagedHumanFire then return end
+
+	data.Dir = (self:GetHumanAimPosition(enemy) - data.Src):GetNormalized()
 
 	return true
 end

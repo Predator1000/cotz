@@ -14,7 +14,7 @@ Each firearm is balanced against its closest CotZ counterpart by calibre and rol
 USAS-12 against the Saiga-12 and the PB against the Makarov:
 
 - Wear follows the counterpart's action type: magazine-fed semi-automatic and automatic guns use
-  `WearDamage = 0.05`, `DurabilityDamageChance = 0.005` and `WearEffect = 0.007`; manual actions use
+  `WearDamage = 0.05`, `DurabilityDamage = 0.005` and `WearEffect = 0.007`; manual actions use
   0.33, 0.01 and 0.005; handguns use 0.14, 0.01 and 0.05. `FireMoveMod`, `SpeedDec` and hold types also
   follow the counterpart.
 - Spread, recoil and movement penalties match the counterpart. Damage, magazine size, fire modes and
@@ -30,6 +30,9 @@ Anomaly firearms use the same inventory attachments as other CW 2.0 firearms. Th
 profiles select optics by family and mount and allow at most one compatible detachable suppressor.
 Pistols use red dots, and revolvers can also take the Schmidt ShortDot. Fixed optics remain part of
 their weapons. Pack-only customization entries are excluded from the regular Anomaly SWEP slots.
+No `cw_anomaly_*` firearm offers a pack attachment: a pack base SWEP uses its `_vmrecoil` profile, and one
+without a profile takes no attachments. `cotz_general` therefore ships only the attachment models that can
+still be drawn; the `VElements` entries for the others remain in the weapon files and stay inactive.
 Install and detach hardware through the inventory. Saved attachments that are no longer compatible
 can be removed with **Detach**.
 

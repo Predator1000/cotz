@@ -17,7 +17,10 @@ Moved Lua files retain their original contents; loaders, documentation, and tool
 | `lua/cotz/` | Standard-Lua data files included explicitly, such as the [attachment placement](attachment-placement.md) policy. |
 | `lua/cw/`, `lua/ecw/`, `lua/tfa/` | Weapon framework support at paths expected by those frameworks. |
 | `lua/entities/`, `lua/weapons/`, `lua/effects/` | Registered entities, SWEPs, and effects; paths determine class names. |
+| `lua/entities/stalker_ai_poltergeist/`, `lua/entities/ent_cotz_orb/` | Shared poltergeist base and mutant projectile; see the [mutant base](mutant-base.md#poltergeists). |
+| `lua/entities/stalker_ai/` | Shared mutant base: combat, sleep, navigation, declarative abilities and flight. See the [mutant base](mutant-base.md). |
 | `lua/stalkernpcbasevars.lua` | Shared NPC definitions included by the NPC autorun files. |
+| `particles/`, `tools/` | Particle files shipped with this addon, and the scripts that generate them. |
 | `docs/` | Project guides and balance tooling, inputs, historical baselines, and tests. |
 | `tests/` | Standalone Lua regression checks. |
 | `.github/workflows/` | Balance export, import, and validation automation. |
@@ -44,6 +47,17 @@ of characters from the legacy playermodels. See [suit playermodels](suit-playerm
 scoreboard field list. Transaction owners record successful cash payments; simplecrossserverdata
 sends summaries only to administrators. See its [economy dossier guide](../gamemodes/ix_cotz/plugins/simplecrossserverdata/README.md#administrator-economy-dossier).
 
+`schema/meta/sh_itemstack.lua` is explicitly included by `sh_schema.lua` and adds stack-merge helpers
+to the item meta (`GetStackCombineTarget`, `CombineStack`, and the overridable `CanStackWith`,
+`GetStackQuantity` and `GetStackCapacity`). They add no action: only items whose definition or base
+declares `ITEM.functions.combine` can merge stacks, so use-count items such as medicine stay separate.
+
+`plugins/ammo.lua` also merges ammunition automatically. When a box enters a character's inventory, one tick after
+`InventoryItemAdded`, its rounds top up existing boxes of the same ammo type, fullest first, up to `maxStack`.
+Any overflow stays in the new box. Stashes and other containers do not auto-merge, and stacks locked by a pending
+hideout operation are skipped. A new Split stack is exempt once through the `cotzKeepSeparate` item data.
+Run `luatex --luaonly tests/ammo_stacking_spec.lua`.
+
 `schema/meta/sv_character.lua` is explicitly included by `sh_schema.lua`. Its owner-sync override
 keeps legacy personal vendor stock/history keys out of the initial character network payload;
 other recipients retain Helix's normal visibility rules. The automatically loaded shared library
@@ -64,22 +78,34 @@ For item descriptions and NPC prose, read the [writing guide](writing-guide.md) 
 [curated references](writing-references/README.md). Detailed examples live in the repository;
 NPC-specific voice notes remain in the existing [contact profiles](npc-overhaul/contacts/README.md).
 
-The bundled `helix/plugins/mapscene.lua` includes COTZ camera visibility support. While a map scene
-is rendering, the client reports its final camera origin at most four times per second. The server
-rate-limits reports, validates them against configured static positions or moving camera segments
-(with 16 units of tolerance for mouse parallax and network rounding), and adds that origin through
-`SetupPlayerVisibility`/`AddOriginToPVS`. This keeps entities visible around the camera independently
-of the player's spawn position. Closing the menu clears the extra origin; reports also expire after
-two seconds without a refresh. Saved scene formats and camera selection remain unchanged.
-This lives in the owning bundled plugin because its `CalcView` return can prevent other plugins
-from observing the active camera. Run `luatex --luaonly tests/mapscene_visibility_spec.lua`.
-In multiplayer, verify distant static and moving scenes, scene transitions, reopening character
-selection with a loaded character, and returning to gameplay with two clients.
+`gamemodes/helix` is kept identical to upstream Helix (NebulousCloud/helix `bb8bf869`, apart from Git
+line-ending normalization), so it can be updated by replacing it. COTZ changes to framework behavior
+live in `ix_cotz` and load after the framework. Schema libraries and meta files redefine framework
+functions: `schema/libs/cl_ikon.lua` (icon renderer), `schema/libs/sv_mysql.lua` (`mysql:RawQuery` error
+text) and `schema/meta/sh_inventory.lua` (`Inventory:Iter()` yields multi-slot items once). A schema
+plugin with the same unique ID as a bundled plugin loads into the same `PLUGIN` table after it. It can
+replace methods, `net.Receive` handlers and `properties.Add` entries without editing the bundled file.
+COTZ does this in `plugins/mapscene.lua`, `plugins/typing.lua` and `plugins/persistence.lua`. Upstream
+iterates framework inventories with `Iter()`, which unlike `GetItems()` does not enter bag inventories.
+COTZ has no bag items (`base_bags`/`isBag`), so this is equivalent; adding bag items would require
+revisiting those framework loops.
 
-The bundled `helix/plugins/typing.lua` accepts indicator clears during its 0.2-second update cooldown,
+`plugins/mapscene.lua` extends the bundled map scene plugin with camera visibility support. While a map
+scene is rendering, the client reports its final camera origin at most four times per second. The server
+rate-limits reports, validates them against configured static positions or moving camera segments (with
+16 units of tolerance for mouse parallax and network rounding), and adds that origin through
+`SetupPlayerVisibility`/`AddOriginToPVS`. This keeps entities visible around the camera independently of
+the player's spawn position. Closing the menu clears the extra origin; reports also expire after two
+seconds without a refresh. Saved scene formats and camera selection remain unchanged. It wraps the
+bundled plugin's own `CalcView`, because that method's return can prevent other plugins from observing
+the active camera. Run `luatex --luaonly tests/mapscene_visibility_spec.lua`. In multiplayer, verify
+distant static and moving scenes, scene transitions, reopening character selection with a loaded
+character, and returning to gameplay with two clients.
+
+`plugins/typing.lua` makes the bundled typing plugin accept indicator clears during its 0.2-second update cooldown,
 so quickly sending or cancelling a message cannot leave a typing/talking label behind. It tracks active
-indicators per player to suppress duplicate clear broadcasts and resets that state on spawn. The fix
-lives in the owning plugin because it controls the existing `ixTypeClass` receiver and cooldown.
+indicators per player to suppress duplicate clear broadcasts and resets that state on spawn. It
+replaces the bundled `ixTypeClass` receiver and cooldown under the same plugin ID.
 Run `luatex --luaonly tests/typing_indicator_spec.lua`. In multiplayer, verify sending and cancelling
 short messages, changing chat classes, respawning, and clearing after a viewer leaves the sender's PVS.
 

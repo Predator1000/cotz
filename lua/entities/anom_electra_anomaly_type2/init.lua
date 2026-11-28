@@ -2,6 +2,8 @@ AddCSLuaFile("shared.lua")
 AddCSLuaFile("cl_init.lua")
 include("shared.lua")
 
+local fx = include("cotz/anomalies/sv_fx.lua")
+
 -- Explicit balancing parameters used by the spreadsheet export/import tool.
 ENT.BalanceDamage = 70
 ENT.BalanceCooldown = 1.9
@@ -30,7 +32,7 @@ function ENT:Initialize()
 	self.Active = true
 	self.ActiveOnce = true
 	self:SetTrigger(1)
-	self:SetCollisionBounds( Vector( -60, -60, -5 ), Vector( 60, 60, 80 ) )
+	self:SetCollisionBounds( Vector( -70, -70, -5 ), Vector( 70, 70, 80 ) )
 	self:SetNWBool("StopParticle", false)
 	self:SetRenderMode( RENDERMODE_TRANSTEXTURE ) 
 	self:SetColor(Color(0,0,0,0))
@@ -47,8 +49,10 @@ function ENT:Touch(ent)
 	if timer.Exists(self:EntIndex().."_electra_activated_type2_"..ent:EntIndex()) then return end
 	if self.ActiveOnce then 
 		timer.Create(self:EntIndex().."_electra_activated_sound_type2", 0, 1, function()
+			if not IsValid(self) then return end
 		self:EmitSound("electra_blast")
-		ParticleEffect( "electra_activated", self:GetPos(), Angle( 0, 0, 0 ) )
+		fx.Burst("cotz_anom_electra_blast_2", self:GetPos())
+		fx.Flash(self, 0.5)
 		self:StopParticles()
 		self:SetNWBool("StopParticle", true)
  		self:StopSound("electra_idle")
@@ -57,23 +61,26 @@ function ENT:Touch(ent)
 	end
 	
 	timer.Create(self:EntIndex().."_electra_activated_type2_"..ent:EntIndex(), 0, 1, function()  -- Timer for multiple entity damage
+		if not IsValid(self) or not IsValid(ent) then return end
 		local dmg = DamageInfo()
 		dmg:SetDamage(self.BalanceDamage)
 		dmg:SetAttacker(self)
 		dmg:SetDamageType(DMG_SHOCK)
 		dmg:SetInflictor(self)
 		ent:TakeDamageInfo(dmg)
+		if fx.IsCreature(ent) then fx.Hit(ent, "cotz_anom_electra_hit") end
 		if IsValid(ent) and ent:IsRagdoll() and ent:GetNetVar("player") == nil then
 			local bodyexplodesounds = {"anomaly/anomaly_body_tear_1.wav", "anomaly/anomaly_body_tear_2.wav"}
 			ent:EmitSound(table.Random(bodyexplodesounds),100,98,1,CHAN_AUTO)
 			ParticleEffect("wick_gore_bloodsplash_new" , ent:GetPos(), Angle( 0, 0, 0 ) )
 			ent:Remove()
-		elseif ent.ixItemID and ix.item.instances[ent.ixItemID].isWeapon then
+		elseif IsValid(ent) and ent.ixItemID and ix.item.instances[ent.ixItemID] and ix.item.instances[ent.ixItemID].isWeapon then
 			ent:Remove()
 		end
 		self.Active = false
 	end)	
 	timer.Create(self:EntIndex().."_electra_cooldown_type2", self.BalanceCooldown, 1, function()
+		if not IsValid(self) then return end
 		self:SetNWBool("StopParticle", false)
 		self.Active = true
 		self.ActiveOnce = true
@@ -100,4 +107,5 @@ function ENT:OnRemove()
 	self.Timer = self:EntIndex().."_electra_cooldown_type2"
 	self:StopSound("electra_idle")
 	timer.Stop(self.Timer)
+	fx.Clear(self)
 end

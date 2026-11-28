@@ -33,7 +33,7 @@ if (CLIENT) then
 end
 
 function ITEM:PopulateTooltip(tooltip)
-    if (!self.entity) then
+    if (not self.entity) then
         ix.util.PropertyDesc(tooltip, "Ammunition", Color(64, 224, 208))
     end
 
@@ -50,9 +50,19 @@ end
 
 function ITEM:OnInstanced(invID, x, y)
 
-	if !self:GetData("quantity") then
+	if not self:GetData("quantity") then
 		self:SetData("quantity", self.ammoAmount)
 	end
+end
+
+-- The last load size is the full box, so it is never a split option.
+local function canSplitAmount(item, amount)
+	if not isnumber(amount) or amount >= item:GetData("quantity", item.ammoAmount) then return false end
+	for i = 1, #item.loadSize - 1 do
+		if item.loadSize[i] == amount then return true end
+	end
+
+	return false
 end
 
 ITEM.functions.split = {
@@ -62,10 +72,8 @@ ITEM.functions.split = {
     isMulti = true,
     multiOptions = function(item, client)
 		local targets = {}
-        local quantity = item:GetData("quantity", item.ammoAmount)
-
-        for i=1,#item.loadSize-1 do
-			if quantity > item.loadSize[i] then
+		for i = 1, #item.loadSize - 1 do
+			if canSplitAmount(item, item.loadSize[i]) then
 				table.insert(targets, {
 					name = item.loadSize[i],
 					data = {item.loadSize[i]},
@@ -79,60 +87,42 @@ ITEM.functions.split = {
 			return false
 		end
 
-		return (!IsValid(item.entity) and item.invID == item.player:GetCharacter():GetInventory():GetID())
+		return (not IsValid(item.entity) and item.invID == item.player:GetCharacter():GetInventory():GetID())
 	end,
-    OnRun = function(item, data)
-		if data[1] then
-			local quantity = item:GetData("quantity", item.ammoAmount)
-			local client = item.player
-
-			quantity = quantity - data[1]
-
-			if quantity <= 0 then
-				return false
-			end
-			if not client:GetCharacter():GetInventory():Add(item.uniqueID, 1, {["quantity"] = data[1]}) then
-				ix.item.SpawnTemporary(item.uniqueID, client:GetItemDropPos(), AngleRand(), {["quantity"] = data[1]})
-				client:Notify("No space in your inventory! Items have been dropped.")
-            end
-
-			item.player:EmitSound("stalkersound/inv_properties.mp3", 110)
-
-			item:SetData("quantity", quantity)
-
+	OnRun = function(item, data)
+		-- The client chooses data, so only accept an amount the menu could have offered.
+		if not istable(data) or not canSplitAmount(item, data[1]) then return false end
+		local amount = data[1]
+		local quantity = item:GetData("quantity", item.ammoAmount) - amount
+		local client = item.player
+		local splitData = {["quantity"] = amount, ["cotzKeepSeparate"] = true}
+		if not client:GetCharacter():GetInventory():Add(item.uniqueID, 1, splitData) then
+			ix.item.SpawnTemporary(item.uniqueID, client:GetItemDropPos(), AngleRand(), {["quantity"] = amount})
+			client:Notify("No space in your inventory! Items have been dropped.")
 		end
+
+		client:EmitSound("stalkersound/inv_properties.mp3", 110)
+		item:SetData("quantity", quantity)
+
 		return false
 	end,
 }
 
+-- Ammo stacks merge by ammo type and start from ammoAmount when no quantity is saved.
+function ITEM:CanStackWith(target)
+	return target.ammo ~= nil and target.ammo == self.ammo
+end
+
+function ITEM:GetStackQuantity()
+	return self:GetData("quantity", self.ammoAmount)
+end
+
 ITEM.functions.combine = {
 	OnCanRun = function(item, data)
-		if !data then
-			return false
-		end
-
-		local targetItem = ix.item.instances[data[1]]
-
-		if targetItem.ammo == item.ammo then
-			return true
-		else
-			return false
-		end
+		return item:GetStackCombineTarget(data) ~= nil
 	end,
 	OnRun = function(item, data)
-		local targetItem = ix.item.instances[data[1]]
-		local targetAmmoDiff = targetItem.maxStack - targetItem:GetData("quantity", targetItem.ammoAmount)
-		local localQuant = item:GetData("quantity", item.ammoAmount)
-		local targetQuant = targetItem:GetData("quantity", targetItem.ammoAmount)
-		item.player:EmitSound("stalkersound/inv_properties.mp3", 110)
-		if targetAmmoDiff >= localQuant then
-			targetItem:SetData("quantity", targetQuant + localQuant)
-			return true
-		else
-			item:SetData("quantity", localQuant - targetAmmoDiff)
-			targetItem:SetData("quantity", targetItem.maxStack)
-			return false
-		end
+		return item:CombineStack(item:GetStackCombineTarget(data))
 	end,
 }
 

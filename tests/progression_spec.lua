@@ -81,14 +81,11 @@ local target = {
 }
 check(not ix.progression.TurnIn(a.client, target, "otherFixture", "artifact_bolt"), "wrong NPC rejected")
 check(not ix.progression.TurnIn(a.client, target, "storageFixture", "invalid"), "wrong item rejected")
-currentMap = "rp_waystation"
-fixture.SetMap(currentMap)
-check(not ix.progression.TurnIn(a.client, target, "storageFixture", "artifact_bolt"), "wrong map rejected")
-currentMap = "rp_marsh_cs"
-fixture.SetMap(currentMap)
 check(not a.weightUpdates, "rejected hand-ins do not refresh carry weight")
+fixture.SetMap("rp_waystation")
 local accepted, response = ix.progression.TurnIn(a.client, target, "storageFixture", "artifact_bolt")
-check(accepted, "valid turn-in accepted")
+fixture.SetMap(currentMap)
+check(accepted, "assigned hand-ins are accepted away from the contact's home map")
 check(a.weightUpdates == 1, "partial-stack hand-in refreshes carry weight")
 check(#lostItems == 1 and lostItems[1].client == a.client, "only accepted delivery notifies its owner")
 check(lostItems[1].description == "artifact_bolt x1", "lost-item notification uses consumed quantity")
@@ -608,10 +605,10 @@ local request = ix.progression.definitions.journalRewardsFixture
 local journal = ix.progression.DescribeTask(request, request.keyNpc, {}, journalOwner)
 local requiredAt, rewardsAt = journal:find("REQUIRED ITEMS:", 1, true), journal:find("Rewards:", 1, true)
 check(requiredAt and rewardsAt and requiredAt < rewardsAt, "requirements precede a distinct Rewards section")
+-- The payment line is intentionally hidden in GetBenefitSummary; payment itself is unchanged.
 check(journal:find("Purchase access:", 1, true) > rewardsAt
-	and journal:find("Stock capacity:", 1, true) > rewardsAt
-	and journal:find("60% of the accepted hand-in value", 1, true) > rewardsAt,
-	"purchase access, stock capacity and money all appear under Rewards")
+	and journal:find("Stock capacity:", 1, true) > rewardsAt,
+	"purchase access and stock capacity appear under Rewards")
 check(not ix.progression.BuildDeliveryResponse(request, request.keyNpc, {}, journalOwner):find("Purchase access:", 1, true),
 	"required-item text never includes purchase rewards")
 

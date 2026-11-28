@@ -1,9 +1,13 @@
 AddCSLuaFile("shared.lua")
 include("shared.lua")
 
+local fx = include("cotz/anomalies/sv_fx.lua")
+
 -- Explicit balancing parameters used by the spreadsheet export/import tool.
 ENT.BalanceDamage = 30
 ENT.BalanceCooldown = 0.5
+-- Seconds the flare keeps burning after the last contact.
+ENT.FlareTime = 3
 
 ENT.cooldown = 0
 
@@ -29,7 +33,7 @@ function ENT:Initialize()
 	self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 	self:SetName("Steam Anomaly")
 	self:SetTrigger(1)
-	self:SetCollisionBounds( Vector( -60, -60, -5 ), Vector( 60, 60, 80 ) )
+	self:SetCollisionBounds( Vector( -30, -30, -5 ), Vector( 30, 30, 80 ) )
 	self.Active = true
 	self.ActiveOnce = true
 	self:SetRenderMode( RENDERMODE_TRANSTEXTURE ) 
@@ -47,13 +51,15 @@ function ENT:Touch(ent)
 	if timer.Exists(self:EntIndex().."_par_activated_"..ent:EntIndex()) then return end
 	if self.ActiveOnce then 
 		timer.Create(self:EntIndex().."_par_activated_sound", 0, 1, function()
+			if not IsValid(self) then return end
 			self:EmitSound("par_blast")
-			ParticleEffectAttach( "par_anomaly", PATTACH_ABSORIGIN_FOLLOW, self, 1 )
+			ParticleEffectAttach("cotz_anom_steam_jet", PATTACH_ABSORIGIN_FOLLOW, self, 0)
 		end)	
 		self.ActiveOnce = false
 	end
 	
 	timer.Create(self:EntIndex().."_par_activated_"..ent:EntIndex(), 0, 1, function()  -- Timer for multiple entity damage
+		if not IsValid(self) or not IsValid(ent) then return end
 		local damageInfo = DamageInfo()
 		damageInfo:SetDamage(self.BalanceDamage)
 		damageInfo:SetDamageType(DMG_BURN)
@@ -65,17 +71,20 @@ function ENT:Touch(ent)
 			ent:EmitSound(table.Random(bodyexplodesounds),100,98,1,CHAN_AUTO)
 			ParticleEffect("wick_gore_bloodsplash_new" , ent:GetPos(), Angle( 0, 0, 0 ) )
 			ent:Remove()
-		elseif ent.ixItemID and ix.item.instances[ent.ixItemID].isWeapon then
+		elseif IsValid(ent) and ent.ixItemID and ix.item.instances[ent.ixItemID] and ix.item.instances[ent.ixItemID].isWeapon then
 			ent:Remove()
 		end
 		self.Active = false
 	end)	
 
 	timer.Create(self:EntIndex().."_par_cooldown", self.BalanceCooldown, 1, function()
+		if not IsValid(self) then return end
 		self.Active = true
 	end)
 
-	timer.Create(self:EntIndex().."_par_sound_cooldown", 11, 1, function()
+	fx.Flash(self, self.FlareTime)
+	timer.Create(self:EntIndex().."_par_sound_cooldown", self.FlareTime, 1, function()
+		if not IsValid(self) then return end
 		self:StopSound("par_blast")
 		self:StopParticles()
 		-- The client owns the idle effect so it can stop it outside visual range.
@@ -103,4 +112,5 @@ function ENT:OnRemove()
 	self:StopSound("par_blast")
 	timer.Stop(self:EntIndex().."_par_cooldown")
 	timer.Stop(self:EntIndex().."_par_sound_cooldown")
+	fx.Clear(self)
 end

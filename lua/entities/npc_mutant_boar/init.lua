@@ -3,6 +3,11 @@ AddCSLuaFile( "shared.lua" )
 include('shared.lua')
 include("STALKERNPCBaseVars.lua")
 
+ENT.PainSoundEnabled = true
+ENT.PainSound.name = "Stalker.Boar.Pain"
+ENT.PainSound.min = 1
+ENT.PainSound.max = 7
+
 ENT.DieSoundEnabled = true
 ENT.DieSound.name = "Stalker.Boar.Die"
 ENT.DieSound.min = 1
@@ -110,7 +115,7 @@ function ENT:STALKERNPCOnDeath()
 end
 
 function ENT:STALKERNPCDamageTake(dmginfo,mul) 
-	TEMP_Mul = mul
+	local TEMP_Mul = mul
 	local headMultiplier = 0.75 // thick skull
 	local torsoMultiplier = 1 // boar is more vulnerable in torso
 	local limbMultiplier = 1

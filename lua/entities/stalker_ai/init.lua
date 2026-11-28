@@ -9,6 +9,8 @@ include( "shared.lua" )
 include("sv_performance.lua")
 include("sv_summoning.lua")
 include("sv_navigation.lua")
+include("sv_abilities.lua")
+include("sv_flight.lua")
 include( "schedules.lua" )
 include( "tasks.lua" )
 
@@ -126,6 +128,9 @@ function ENT:STALKERNPCInit(VEC,MTYPE,CAPS)
 	duplicator.RegisterEntityClass( self:GetClass(), function( ply, data )
 		duplicator.GenericDuplicatorFunction( ply, data )
 	end, "Data" )
+
+	if self.Abilities then self:STALKERNPCInitAbilities() end
+	if self.MovementMode == "fly" then self:STALKERNPCInitFlight() end
 
 
 	if(self.SNPCClass=="C_ZOMBIE") then
@@ -374,6 +379,7 @@ function ENT:STALKERNPCKill(dmginfo)
 
 	if(self.IsAlive==true) then
 		self.IsAlive = false
+		self:STALKERNPCAbandonAbility()
 
 		self:STALKERNPCStopAllTimers()
 		self.Animation = ""
@@ -438,6 +444,9 @@ function ENT:STALKERNPCKill(dmginfo)
 				end)
 
 				TEMP_Ragdoll:TakeDamageInfo(dmginfo)
+				-- Mutants that share a ragdoll model tell poaching which harvest the corpse holds.
+				TEMP_Ragdoll.cotzPoachType = self.PoachingType
+				self.cotzRagdoll = TEMP_Ragdoll
 
 				if ix and ix.eventController and self:GetClass():sub(1, 11) == "npc_mutant_" then
 					ix.eventController:TrackCorpse(TEMP_Ragdoll)
@@ -817,6 +826,27 @@ function ENT:STALKERNPCPlaySoundRandom(CH,SNDNM,IMIN,IMAX,CHAN)
 	end
 end
 
+-- Pain has its own cooldown, separate from NextSoundCanPlayTime, and no chance roll: every hit
+-- plays it unless the previous pain is still cooling down.
+function ENT:STALKERNPCPlayPainSound()
+	if((self.NextPainSoundTime or 0)>CurTime()) then return end
+
+	self:EmitSound(self.PainSound.name..math.random(self.PainSound.min,self.PainSound.max))
+	self.NextPainSoundTime = CurTime()+self.PainSoundCooldown
+end
+
+-- Chasing sounds with noCooldown neither wait for nor set NextSoundCanPlayTime, so other sounds are unaffected.
+-- The chance is rolled at most once per ChasingSound.interval seconds, so clips do not stack.
+function ENT:STALKERNPCPlayChasingSoundNoCooldown()
+	if((self.NextChasingSoundTime or 0)>CurTime()) then return end
+
+	self.NextChasingSoundTime = CurTime()+self.ChasingSound.interval
+
+	if(math.random(1,100)<self.ChasingSound.chance) then
+		self:EmitSound(self.ChasingSound.name..math.random(self.ChasingSound.min,self.ChasingSound.max))
+	end
+end
+
 function ENT:STALKERNPCStopPreviousSound()
 	self:StopSound(self.LastPlayedSound)
 	self.LastPlayedSound = ""
@@ -936,6 +966,7 @@ end
 
 //Base functions
 function ENT:OnRemove()
+	self:STALKERNPCAbandonAbility()
 	self:STALKERNPCStopAllTimers(ALL)
 	self:STALKERNPCRemove()
 end
@@ -958,23 +989,10 @@ end
 function ENT:ExpressionFinished( strExp )
 end
 
-local PENDING_TARGET_ABILITIES = {"isAttacking", "IsJumping", "IsLongJumping", "isBigJumping"}
-
 function ENT:STALKERNPCCancelPendingTargetAbilities()
 	if IsValid(self:GetEnemy()) then return end
 
-	local cancelled = false
-	for _, field in ipairs(PENDING_TARGET_ABILITIES) do
-		-- State 1 is the windup; later states must still run their landing/recovery cleanup.
-		if self[field] == 1 then
-			self[field] = 0
-			cancelled = true
-		end
-	end
-	if not cancelled then return end
-
-	self:STALKERNPCStopAllTimers()
-	self:STALKERNPCClearAnimation()
+	self:STALKERNPCCancelAbilityWindup()
 end
 
 function ENT:Think()
@@ -986,6 +1004,7 @@ function ENT:Think()
 	if(GetConVar("ai_disabled"):GetInt()==0&&self.IsAlive==true) then
 
 		self:STALKERNPCCancelPendingTargetAbilities()
+		if self.cotzAbility then self:STALKERNPCUpdateAbility() end
 		self:STALKERNPCThink()
 
 		if(self.PlayingAnimation==true) then
@@ -1003,8 +1022,8 @@ function ENT:Think()
 		if(self:GetEnemy()&&IsValid(self:GetEnemy())&&self:GetEnemy()!=nil&&self:GetEnemy()!=NULL&&
 		(self:STALKERNPCIsEnemyNPC(self:GetEnemy())||self:STALKERNPCIsEnemyPlayer(self:GetEnemy()))
 		and self.cotzPlayerVisible ~= false) then
-			if(self:IsOnGround()) then
-				if(self.PlayingAnimation==false) then
+			if self.cotzFlying or self:IsOnGround() then
+				if self.PlayingAnimation == false and not self.cotzAbility then
 
 					if(self:GetEnemy():Visible(self)) then
 						local TEMP_MaxMeleeDistance = self.MeleeAttackDistance
@@ -1015,7 +1034,10 @@ function ENT:Think()
 
 						local TEMP_DistanceForMelee, TEMP_DistToEnemy = self:STALKERNPCEnemyInMeleeRange(self:GetEnemy(),self.MeleeAttackDistanceMin,TEMP_MaxMeleeDistance)
 
-						if(TEMP_DistanceForMelee==2) then
+						if self.Abilities and not self.cotzNavigationRetreat
+							and self:STALKERNPCTryAbilities(self:GetEnemy(), TEMP_DistanceForMelee) then
+							-- The started ability owns this tick.
+						elseif(TEMP_DistanceForMelee==2) then
 							local TEMP_IND = self:STALKERNPCSelectMeleeAttack()
 							self:STALKERNPCMeleePlay(TEMP_IND)
 						elseif(TEMP_DistanceForMelee==1) then
@@ -1032,7 +1054,11 @@ function ENT:Think()
 					self:STALKERNPCThinkEnemyValid()
 
 					if(self.ChasingSoundEnabled==true&&self:IsCurrentSchedule(SCHED_CHASE_ENEMY)) then
-						self:STALKERNPCPlaySoundRandom(self.ChasingSound.chance,self.ChasingSound.name,self.ChasingSound.min,self.ChasingSound.max)
+						if(self.ChasingSound.noCooldown==true) then
+							self:STALKERNPCPlayChasingSoundNoCooldown()
+						else
+							self:STALKERNPCPlaySoundRandom(self.ChasingSound.chance,self.ChasingSound.name,self.ChasingSound.min,self.ChasingSound.max)
+						end
 					end
 
 				else
@@ -1046,6 +1072,8 @@ function ENT:Think()
 
 			self:STALKERNPCThinkNoEnemy()
 		end
+
+		if self.cotzFlying then self:STALKERNPCUpdateFlight() end
 	end
 
 	self:NextThink(CurTime() + self:STALKERNPCGetThinkInterval())
@@ -1170,7 +1198,7 @@ function ENT:OnTakeDamage(dmginfo)
 
 	if(self:Health()>0) then
 		if(self.PainSoundEnabled==true) then
-			self:STALKERNPCPlaySoundRandom(33,self.PainSound.name,self.PainSound.min,self.PainSound.max)
+			self:STALKERNPCPlayPainSound()
 		end
 	elseif(self:Health()<1&&self.IsAlive==true) then
 		self:STALKERNPCKill(dmginfo)

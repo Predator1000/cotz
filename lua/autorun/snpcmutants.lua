@@ -10,6 +10,34 @@ PrecacheParticleSystem("electra_activated")
 PrecacheParticleSystem("electra_static")
 PrecacheParticleSystem("electra_static_electra")
 
+local MUTANT_PARTICLE_FILES = {
+	"particles/wick_new_pfx_anoms.pcf",
+	"particles/wick_stalker_artefacts.pcf",
+	"particles/wick_stalker_anomaly_electra.pcf",
+	"particles/wick_stalker_anomaly_gravity.pcf",
+	"particles/cotz_poltergeist_orbs.pcf",
+}
+local MUTANT_PARTICLES = {
+	"wick_pfx_bloodsucker_invisible_in",
+	"wick_pfx_bloodsucker_invisible_out",
+	"wick_pfx_jarka_inactive",
+	"jarka_activated",
+	"cotz_orb_fire",
+	"cotz_orb_gravity",
+	"wick_art_fire_smoke",
+	"wick_art_electro_sparks",
+	"wick_art_gravity_dist",
+	"wick_anomaly_electra_static",
+	"wick_anomaly_electra_activated",
+	"wick_anomaly_trampmlin_blast",
+}
+for _, path in ipairs(MUTANT_PARTICLE_FILES) do
+	game.AddParticles(path)
+end
+for _, name in ipairs(MUTANT_PARTICLES) do
+	PrecacheParticleSystem(name)
+end
+
 local function AddNPC(NAME,TYPE)
 	local NPC = {
 		Name = NAME, 
@@ -65,6 +93,19 @@ AddNPC("Spider", "npc_mutant_spider")
 AddNPC("Tark", "npc_mutant_tark")
 
 AddNPC("Vareshka", "npc_mutant_vareshka")
+
+local NEW_MUTANTS = {
+	npc_mutant_bloodsucker_swamp = "Bloodsucker (Swamp)",
+	npc_mutant_mimic = "Mimic",
+	npc_mutant_poltergeist_fire = "Poltergeist (Fire)",
+	npc_mutant_poltergeist_electro = "Poltergeist (Electric)",
+	npc_mutant_poltergeist_tele = "Poltergeist (Telekinetic)",
+}
+for class, name in pairs(NEW_MUTANTS) do
+	AddNPC(name, class)
+	-- Death notices look the class name up as a language phrase.
+	if CLIENT then language.Add(class, name) end
+end
 
 local function AddSoundInterval(NAME,IMIN,IMAX,CHAN,VOL,LEV,PITMIN,PITMAX,PATH)
 	for S=IMIN, IMAX do
@@ -487,9 +528,12 @@ AddSound("Stalker.Bloodsucker.Idle1",CHAN_VOICE,1,TEMP_IDLEDIST,98,102,"hgn/stal
 AddSound("Stalker.Bloodsucker.Idle2",CHAN_VOICE,1,TEMP_IDLEDIST,98,102,"hgn/stalker/creature/bs/idle_2.mp3")
 AddSound("Stalker.Bloodsucker.Idle3",CHAN_VOICE,1,TEMP_IDLEDIST,98,102,"hgn/stalker/creature/bs/idle_0.mp3")
 ----CHASE
-AddSound("Stalker.Bloodsucker.Chase1",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"hgn/stalker/creature/bs/sucker_growl_1.mp3")
-AddSound("Stalker.Bloodsucker.Chase2",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"hgn/stalker/creature/bs/sucker_growl_4.mp3")
-AddSound("Stalker.Bloodsucker.Chase3",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"hgn/stalker/creature/bs/attack_hit_2.mp3")
+AddSound("Stalker.Bloodsucker.Chase1",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"npc/bloodsucker/breath_1.ogg")
+AddSound("Stalker.Bloodsucker.Chase2",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"npc/bloodsucker/breath_2.ogg")
+AddSound("Stalker.Bloodsucker.Chase3",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"npc/bloodsucker/breath_3.ogg")
+AddSound("Stalker.Bloodsucker.Chase4",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"npc/bloodsucker/breath_4.ogg")
+AddSound("Stalker.Bloodsucker.Chase5",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"npc/bloodsucker/breath_5.ogg")
+AddSound("Stalker.Bloodsucker.Chase6",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"npc/bloodsucker/breath_6.ogg")
 ----HIT
 AddSound("Stalker.Bloodsucker.Hit1",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"hgn/stalker/creature/bs/attack_0.mp3")
 AddSound("Stalker.Bloodsucker.Hit2",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"hgn/stalker/creature/bs/attack_1.mp3")
@@ -503,6 +547,54 @@ AddSound("Stalker.Bloodsucker.Die3",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"hgn/stal
 AddSound("Stalker.Bloodsucker.Die4",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"hgn/stalker/creature/bs/die_3.mp3")
 ----FEEDING
 AddSound("Stalker.Bloodsucker.Feed",CHAN_VOICE,1,TEMP_ANGERDIST,98,102,"hgn/stalker/creature/bs/vampire_sucking.wav")
+
+-- Mimic sounds
+local function AddMutantSounds(name, level, folder, files)
+	for index, fileName in ipairs(files) do
+		AddSound(name .. index, CHAN_VOICE, 1, level, 98, 102, folder .. fileName .. ".ogg")
+	end
+end
+
+AddMutantSounds("Stalker.Mimic.Idle", TEMP_IDLEDIST, "npc/mimic/", {"idle_1", "idle_2", "idle_3", "idle_4"})
+AddMutantSounds("Stalker.Mimic.Chase", TEMP_ANGERDIST, "npc/mimic/", {"attack_0", "attack_1", "attack_2"})
+AddMutantSounds("Stalker.Mimic.Melee", TEMP_ANGERDIST, "npc/mimic/", {"attack_3", "attack_4", "attack_5"})
+
+-- Pain sounds, taken from the hit and pain files in each mutant's npc/ folder.
+AddMutantSounds("Stalker.Bear.Pain", TEMP_ANGERDIST, "npc/bear/", {"bear_pain_0", "bear_pain_1"})
+AddMutantSounds("Stalker.Bloodsucker.Pain", TEMP_ANGERDIST, "npc/bloodsucker/", {"hit_0", "hit_1", "hit_2"})
+AddMutantSounds("Stalker.Boar.Pain", TEMP_ANGERDIST, "npc/boar/", {"boar_pain_0", "boar_pain_1", "boar_pain_2", "boar_pain_3", "boar_pain_4", "boar_pain_5", "boar_pain_6"})
+AddMutantSounds("Stalker.Burer.Pain", TEMP_ANGERDIST, "npc/burer/", {"burer_hit"})
+AddMutantSounds("Stalker.Cat.Pain", TEMP_ANGERDIST, "npc/cat/", {"cat_pain_0", "cat_pain_1"})
+AddMutantSounds("Stalker.Chimera.Pain", TEMP_ANGERDIST, "npc/chimera2/", {"hit_1", "hit_2", "hit_3", "hit_4", "hit_5"})
+AddMutantSounds("Stalker.Flesh.Pain", TEMP_ANGERDIST, "npc/flesh/", {"flesh_pain_0", "flesh_pain_1", "flesh_pain_2", "flesh_pain_3"})
+AddMutantSounds("Stalker.Izlom.Pain", TEMP_ANGERDIST, "npc/fracture/", {"izlom_take_damage_0", "izlom_take_damage_1", "izlom_take_damage_2"})
+AddMutantSounds("Stalker.PseudogiantFast.Pain", TEMP_ANGERDIST, "npc/giant/", {"giant_hurt_0", "giant_hurt_1", "giant_hurt_2", "giant_hurt_3", "giant_hurt_4", "giant_hurt_5"})
+AddMutantSounds("Stalker.PseudogiantSlow.Pain", TEMP_ANGERDIST, "npc/giant2/", {"giant_hurt_0", "giant_hurt_1", "giant_hurt_2"})
+AddMutantSounds("Stalker.Zombie.Pain", TEMP_ANGERDIST, "npc/zombie/", {"zombie_take_damage_1", "zombie_take_damage_2", "zombie_take_damage_3", "zombie_take_damage_4", "zombie_take_damage_5", "zombie_take_damage_6"})
+AddMutantSounds("Stalker.Poltergeist.Pain", TEMP_ANGERDIST, "npc/poltergeist/", {"hit_0", "hit_1"})
+AddMutantSounds("Stalker.Rodent.Pain", TEMP_ANGERDIST, "npc/tushkan/", {"tushkano_pain_0", "tushkano_pain_1", "tushkano_pain_2", "tushkano_pain_3", "tushkano_pain_4", "tushkano_pain_5"})
+AddMutantSounds("Stalker.Spider.Pain", TEMP_ANGERDIST, "npc/pauk/", {"pauk_pain_0", "pauk_pain_1", "pauk_pain_2"})
+AddMutantSounds("Stalker.Dog.Pain", TEMP_ANGERDIST, "npc/dog/", {"bdog_hurt_0", "bdog_hurt_1", "bdog_hurt_2", "bdog_hurt_3", "bdog_hurt_4", "bdog_hurt_5", "bdog_hurt_6"})
+AddMutantSounds("Stalker.Pseudodog.Pain", TEMP_ANGERDIST, "npc/pseudodog/", {"pdog_hurt_0", "pdog_hurt_1"})
+AddMutantSounds("Stalker.Karlik.Pain", TEMP_ANGERDIST, "npc/karlik/", {"karlik_hurt_0", "karlik_hurt_1", "karlik_hurt_2", "karlik_hurt_3"})
+AddMutantSounds("Stalker.Vareshka.Pain", TEMP_ANGERDIST, "npc/vypolzen/", {"vypolzen_damage_0", "vypolzen_damage_1", "vypolzen_damage_2"})
+AddMutantSounds("Stalker.Mimic.Pain", TEMP_ANGERDIST, "npc/mimic/", {"def_1", "def_2", "def_3"})
+AddMutantSounds("Stalker.Mimic.Die", TEMP_ANGERDIST, "npc/mimic/", {"die_0", "die_1", "die_2", "die_3"})
+AddMutantSounds("Stalker.Mimic.Vanish", TEMP_ANGERDIST, "npc/mimic/",
+	{"invisible_0", "invisible_1", "invisible_2"})
+AddMutantSounds("Stalker.Mimic.Land", TEMP_ANGERDIST, "npc/mimic/", {"landing_0", "landing_1"})
+AddSound("Stalker.Mimic.Ambush", CHAN_VOICE, 1, 95, 98, 102, "npc/mimic/sucker_growl_2.ogg")
+
+-- Poltergeist sounds
+AddMutantSounds("Stalker.Poltergeist.Idle", TEMP_IDLEDIST, "npc/poltergeist/",
+	{"idle_0", "idle_1", "idle_2", "idle_3", "pg_laughing_0", "bet_laugh2"})
+AddMutantSounds("Stalker.Poltergeist.Attack", TEMP_ANGERDIST, "npc/poltergeist/",
+	{"attack_0", "attack_1", "attack_2"})
+AddMutantSounds("Stalker.Poltergeist.Die", TEMP_ANGERDIST, "npc/poltergeist/", {"die_0", "die_1", "die_2", "die_3"})
+AddMutantSounds("Stalker.Poltergeist.TelePain", TEMP_ANGERDIST, "npc/poltergeist/",
+	{"tele_damage_0", "tele_damage_1"})
+AddMutantSounds("Stalker.Poltergeist.TeleDie", TEMP_ANGERDIST, "npc/poltergeist/",
+	{"tele_death_0", "tele_death_1"})
 
 -- Pseudodog sounds
 ----IDLE

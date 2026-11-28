@@ -2,6 +2,8 @@ AddCSLuaFile("shared.lua")
 AddCSLuaFile("cl_init.lua")
 include("shared.lua")
 
+local fx = include("cotz/anomalies/sv_fx.lua")
+
 -- Explicit balancing parameters used by the spreadsheet export/import tool.
 ENT.BalanceDamage = 40
 ENT.BalanceCooldown = 0.65
@@ -29,7 +31,7 @@ function ENT:Initialize()
 	self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 	self:SetName("Kisel' Anomaly")
 	self:SetTrigger(1)
-	self:SetCollisionBounds( Vector( -60, -60, -5 ), Vector( 60, 60, 80 ) )
+	self:SetCollisionBounds( Vector( -50, -50, -5 ), Vector( 50, 50, 80 ) )
 	self:SetRenderMode( RENDERMODE_TRANSTEXTURE ) 
 	self:SetColor(Color(0,0,0,0))
 
@@ -45,13 +47,16 @@ function ENT:Touch(ent)
 	if timer.Exists(self:EntIndex().."_kisel_activated_"..ent:EntIndex()) then return end
 	if self.ActiveOnce then 
 		timer.Create(self:EntIndex().."_kisel_activated_sound", 0, 1, function()
+			if not IsValid(self) then return end
 			self:SetNWBool("Activated", true)
 			self:EmitSound("bfuzz_hit");
+			fx.Burst("cotz_anom_acid_burst", self:GetPos())
 		end)	
 		self.ActiveOnce = false	
 	end
 	
 	timer.Create(self:EntIndex().."_kisel_activated_"..ent:EntIndex(), 0, 1, function()  -- Timer for multiple entity damage
+		if not IsValid(self) or not IsValid(ent) then return end
 		local damageInfo = DamageInfo()
 		damageInfo:SetDamage(self.BalanceDamage)
 		damageInfo:SetDamageType(DMG_ACID)
@@ -63,12 +68,13 @@ function ENT:Touch(ent)
 			ent:EmitSound(table.Random(bodyexplodesounds),100,98,1,CHAN_AUTO)
 			ParticleEffect("wick_gore_bloodsplash_new" , ent:GetPos(), Angle( 0, 0, 0 ) )
 			ent:Remove()
-		elseif ent.ixItemID and ix.item.instances[ent.ixItemID].isWeapon then
+		elseif IsValid(ent) and ent.ixItemID and ix.item.instances[ent.ixItemID] and ix.item.instances[ent.ixItemID].isWeapon then
 			ent:Remove()
 		end
 		self.Active = false
 	end)	
 	timer.Create(self:EntIndex().."_kisel_cooldown", self.BalanceCooldown, 1, function()
+		if not IsValid(self) then return end
 		self:SetNWBool("Activated", false)
 		self.Active = true
 		self.ActiveOnce = true

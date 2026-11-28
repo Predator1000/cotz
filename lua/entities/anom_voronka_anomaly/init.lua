@@ -2,6 +2,13 @@ AddCSLuaFile("shared.lua")
 AddCSLuaFile("cl_init.lua")
 include("shared.lua")
 
+local fx = include("cotz/anomalies/sv_fx.lua")
+
+local mutantCapture = include("cotz/anomalies/sv_mutantcapture.lua")
+
+-- Matches the burst inside cotz_anom_vortex_blast; its flash is over 0.3 s later.
+local BURST_TIME = 2.3
+
 hook.Add( "OnDamagedByExplosion", "DisableSound", function()
 	return true
 end )
@@ -22,14 +29,14 @@ function ENT:Initialize()
 	self:SetMoveType(MOVETYPE_VPHYSICS)  
 	self:SetSolid(SOLID_BBOX)	
 	self:SetCollisionGroup(COLLISION_GROUP_WORLD)
-	self:SetName("Electra Anomaly")
+	self:SetName("Voronka Anomaly")
 	self:SetTrigger(1)
 	self.Active = true
-	self:SetCollisionBounds( Vector( -100, -100, -5 ), Vector( 100, 100, 80 ) )
+	self:SetCollisionBounds( Vector( -120, -120, -5 ), Vector( 120, 120, 80 ) )
 	self:SetNWBool("StopParticle", false)
 	self:SetRenderMode( RENDERMODE_TRANSTEXTURE ) 
 	self:SetColor(Color(0,0,0,0))
-	self.Power = Vector(3.5,3.5,1)
+	self.Power = Vector(3,3,1)
 	
     local phys = self:GetPhysicsObject()
 	if (phys:IsValid()) then
@@ -44,7 +51,9 @@ function ENT:Think()
 
 		return true
 	end
-	for _, v in ipairs(ents.FindInSphere(self:GetPos(),100)) do
+	mutantCapture.Update(self, self:GetPos(), 120, self:GetPos() + Vector(0, 0, 50),
+		"voronka_recharge" .. self:EntIndex(), function(ragdoll) self:StartTouch(ragdoll) end)
+	for _, v in ipairs(ents.FindInSphere(self:GetPos(),120)) do
 		if v:IsPlayer() then
 			v:SetVelocity( (self:GetPos() - v:GetPos()) * self.Power)
 		else
@@ -64,7 +73,9 @@ function ENT:StartTouch(ent)
 	timer.Create("voronka_activated_once" .. self:EntIndex(), 0.01, 1, function()
 		if not IsValid(self) then return end
 		self:EmitSound("voronka_blast");
-		ParticleEffect( "voronka_activated", self:GetPos(), Angle( 0, 0, 0 ) )
+		-- One system plays the whole pull-in and burst.
+		fx.Burst("cotz_anom_vortex_blast", self:GetPos())
+		fx.Flash(self, BURST_TIME + 0.3)
 		self:StopParticles()
 		self:SetNWBool("StopParticle", true)
 		self:StopSound("voronka_idle")
@@ -75,9 +86,8 @@ function ENT:StartTouch(ent)
 		self:SetNWBool("StopParticle", false)
 		self.Active = true
 	end)
-	timer.Create("voronka_activated"..self:EntIndex(), 2.0, 1, function()
+	timer.Create("voronka_activated"..self:EntIndex(), BURST_TIME, 1, function()
 		if not IsValid(self) then return end
-		ParticleEffect( "voronka_blast", self:GetPos(), Angle( 0, 0, 0 ) )
 		local damageOrigin = self:GetPos()
 		local damageInfo = DamageInfo()
 		damageInfo:SetDamage(150)
@@ -86,7 +96,9 @@ function ENT:StartTouch(ent)
 		damageInfo:SetInflictor(self)
 		damageInfo:SetDamagePosition(damageOrigin)
 		util.BlastDamageInfo(damageInfo, damageOrigin, 120)
-		if IsValid(ent) and ent:IsRagdoll() and ent:GetNetVar("player") == nil then
+		mutantCapture.Burst(self)
+		if IsValid(ent) and ent:IsRagdoll() and ent:GetNetVar("player") == nil
+			and not ent:IsMarkedForDeletion() then
 			ent:Remove()
 		end
 		--ent:TakeDamage(1100, self, self)
@@ -119,4 +131,5 @@ function ENT:OnRemove()
 	timer.Remove(self.Timer)
 	timer.Remove("voronka_recharge"..self:EntIndex())
 	timer.Remove("voronka_activated"..self:EntIndex())
+	fx.Clear(self)
 end

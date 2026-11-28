@@ -4,14 +4,11 @@ local PLUGIN = PLUGIN
 PLUGIN.protectionTypes = {
 	{name = "Ballistic", icon = "protection/ballistics", multiplier = "ixperbulletres", flat = "ixflatbulletres"},
 	{name = "Rupture", icon = "protection/rupture", multiplier = "ixperslashres", flat = "ixflatslashres"},
+	{name = "Impact", icon = "protection/impact", multiplier = "ixperimpactres", flat = "ixflatimpactres"},
 	{name = "Radiation", icon = "protection/radiation", radiation = true},
 	{name = "Thermal", icon = "protection/thermal", multiplier = "ixperthermalres", flat = "ixflatthermalres"},
 	{name = "Electrical", icon = "protection/electrical", multiplier = "ixperelectricalres", flat = "ixflatelectricalres"},
 	{name = "Chemical", icon = "protection/chemical", multiplier = "ixperchemicalres", flat = "ixflatchemicalres"},
-	{
-		name = "Gravitational", icon = "protection/gravitational",
-		multiplier = "ixpergravitationalres", flat = "ixflatgravitationalres",
-	},
 	{name = "Psy", icon = "protection/psychic", multiplier = "ixperpsyres", flat = "ixflatpsyres"},
 }
 

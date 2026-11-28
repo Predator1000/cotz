@@ -10,12 +10,12 @@ for key, pool in pairs(ix.progression.itemPools) do
 	end
 end
 local questItems = {}
-local questFiles = assert(io.popen("rg --files gamemodes/ix_cotz/schema/items/quests"))
+local questFiles = assert(io.popen("rg --files gamemodes/ix_cotz/schema/items/zquests"))
 for path in questFiles:lines() do questItems[assert(path:match("/sh_(.+)%.lua$"))] = true end
 questFiles:close()
 local files = assert(io.popen(
 	"rg --files gamemodes/ix_cotz/schema/items/valuables_test "
-		.. "gamemodes/ix_cotz/schema/items/valuable gamemodes/ix_cotz/schema/items/quests"
+		.. "gamemodes/ix_cotz/schema/items/valuable gamemodes/ix_cotz/schema/items/zquests"
 ))
 for path in files:lines() do
 	local itemID = path:match("/sh_(.+)%.lua$")
@@ -35,6 +35,8 @@ local maps = {
 }
 local seen = {}
 local previous = {0, 0}
+-- Pools whose total intentionally differs from the 10,000-weight convention.
+local POOL_TOTALS = {worldspawn_garbage_rare = 10600}
 local loader = assert(io.open(root .. "libs/sh_randomitems.lua"))
 local includes = loader:read("*a")
 loader:close()
@@ -60,7 +62,7 @@ for _, pair in ipairs(maps) do
 				value = value + row[1] * prices[id]
 			end
 		end
-		assert(totalWeight == 10000, "Whole pool must total 10,000 weight: " .. key)
+		assert(totalWeight == (POOL_TOTALS[key] or 10000), "Whole pool must total its configured weight: " .. key)
 		assert(weaponWeight <= 400, "Weapons must remain occasional finds: " .. key)
 		assert(weight > 0, "No new loot in " .. key)
 		means[rarity] = value / weight

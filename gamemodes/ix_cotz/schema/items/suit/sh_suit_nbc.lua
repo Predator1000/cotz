@@ -14,6 +14,7 @@ ITEM.baseSuit = "suit_nbc"
 
 ITEM.price = 165000
 ITEM.repairCost = ITEM.price/100*1 -- cost to repair from 0% durability
+ITEM.fullRepairCost = 10970
 
 ITEM.isGasmask = true
 ITEM.filterType = "air_tank"
@@ -25,6 +26,8 @@ ITEM.br = 0.09
 ITEM.fbr = 1
 ITEM.sr = 0.17
 ITEM.fsr = 1
+ITEM.impactRes = 0.13
+ITEM.flatImpactRes = 2
 ITEM.ar = 0.20
 ITEM.far = 2
 ITEM.thermalRes = 0.20
@@ -33,8 +36,6 @@ ITEM.electricalRes = 0.20
 ITEM.flatElectricalRes = 2
 ITEM.chemicalRes = 0.20
 ITEM.flatChemicalRes = 2
-ITEM.gravitationalRes = 0.20
-ITEM.flatGravitationalRes = 2
 
 ITEM.pr = 0.10
 ITEM.fpr = 0

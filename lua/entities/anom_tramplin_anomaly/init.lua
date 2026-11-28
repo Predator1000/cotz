@@ -2,6 +2,15 @@ AddCSLuaFile("shared.lua")
 AddCSLuaFile("cl_init.lua")
 include("shared.lua")
 
+local fx = include("cotz/anomalies/sv_fx.lua")
+
+local mutantCapture = include("cotz/anomalies/sv_mutantcapture.lua")
+
+-- Matches the burst inside cotz_anom_karusel_charge.
+local BURST_TIME = 6.15
+-- The charge never ends on its own. Stop it once the burst has emitted, before the idle effect returns.
+local CHARGE_END_TIME = 6.5
+
 hook.Add( "OnDamagedByExplosion", "DisableSound", function()
 	return true
 end )
@@ -24,7 +33,7 @@ function ENT:Initialize()
 	self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 	self:SetName("Tramplin Anomaly")
 	self:SetTrigger(1)
-	self:SetCollisionBounds( Vector( -60, -60, -5 ), Vector( 60, 60, 80 ) )
+	self:SetCollisionBounds( Vector( -90, -90, -5 ), Vector( 90, 90, 80 ) )
 	self:SetNWBool("StopParticle", false)
 	self.Active = true
 	self:SetRenderMode( RENDERMODE_TRANSTEXTURE ) 
@@ -59,6 +68,9 @@ function ENT:Think()
 
 		return true
 	end
+	local core = self:GetPos() + Vector(0, 0, 300)
+	mutantCapture.Update(self, core, 300, core, "tramplin_recharge" .. self:EntIndex(),
+		function(ragdoll) self:StartBlastCycle(ragdoll) end)
 	for _, v in ipairs(ents.FindInSphere(self:GetPos()+Vector(0,0,300),300)) do
 		if v == self then return end
 		if v:IsPlayer() then
@@ -71,12 +83,18 @@ function ENT:Think()
 end
 
 function ENT:StartTouch(ent)
-	if not self.Active == true then 
+	if not self.Active == true then self:StartBlastCycle(ent) end
+end
+
+function ENT:StartBlastCycle(ent)
+	local restingActive = self.Active
 	timer.Create("tramplin_activated_once" .. self:EntIndex(), 0.01, 1, function()
 		if not IsValid(self) then return end
 		self:EmitSound("tramplin_blast");
-		ParticleEffect( "tramplin_activated", self:GetPos(), Angle( 0, 0, 0 ) )
 		self:StopParticles()
+		ParticleEffectAttach("cotz_anom_karusel_charge", PATTACH_ABSORIGIN_FOLLOW, self, 0)
+		ParticleEffectAttach("cotz_anom_karusel_swirl", PATTACH_ABSORIGIN_FOLLOW, self, 0)
+		fx.Flash(self, 6.5)
 		self:StopSound("tramplin_idle")
 		self:SetNWBool("StopParticle", true)
 		self.Active = true
@@ -88,11 +106,13 @@ function ENT:StartTouch(ent)
 	timer.Create("tramplin_recharge"..self:EntIndex(), 6.7, 1, function()
 		if not IsValid(self) then return end
 		self:SetNWBool("StopParticle", false)
-	self.Active = false
+		self.Active = restingActive
 	end)
-	timer.Create("tramplin_activated"..self:EntIndex(), 6, 1, function()
+	timer.Create("tramplin_charge_end"..self:EntIndex(), CHARGE_END_TIME, 1, function()
+		if IsValid(self) then self:StopParticles() end
+	end)
+	timer.Create("tramplin_activated"..self:EntIndex(), BURST_TIME, 1, function()
 		if not IsValid(self) then return end
-		ParticleEffect( "tramplin_blast", self:GetPos(), Angle( 0, 0, 0 ) )
 		local damageOrigin = self:GetPos() + Vector(50, 50, 300)
 		local damageInfo = DamageInfo()
 		damageInfo:SetDamage(400)
@@ -101,7 +121,9 @@ function ENT:StartTouch(ent)
 		damageInfo:SetInflictor(self)
 		damageInfo:SetDamagePosition(damageOrigin)
 		util.BlastDamageInfo(damageInfo, damageOrigin, 250)
-		if IsValid(ent) and ent:IsRagdoll() and ent:GetNetVar("player") == nil then
+		mutantCapture.Burst(self)
+		if IsValid(ent) and ent:IsRagdoll() and ent:GetNetVar("player") == nil
+			and not ent:IsMarkedForDeletion() then
 			local bodyexplodesounds = {"anomaly/anomaly_body_tear_1.wav", "anomaly/anomaly_body_tear_2.wav"}
 			ent:EmitSound(table.Random(bodyexplodesounds),100,98,1,CHAN_AUTO)
 			ParticleEffect("wick_gore_bloodsplash_new" , ent:GetPos(), Angle( 0, 0, 0 ) )
@@ -112,7 +134,6 @@ function ENT:StartTouch(ent)
 		end
 		--ply:TakeDamage(99999, self, self)
 	end)
-	end
 end
 
 function ENT:OnRemove()
@@ -123,4 +144,6 @@ function ENT:OnRemove()
 	timer.Remove("tramplin_recharge"..self:EntIndex())
 	timer.Remove("tramplin_activated"..self:EntIndex())
 	timer.Remove("tramplin_stop_sound"..self:EntIndex())
+	timer.Remove("tramplin_charge_end"..self:EntIndex())
+	fx.Clear(self)
 end

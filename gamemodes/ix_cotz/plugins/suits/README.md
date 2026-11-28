@@ -64,20 +64,19 @@ weight describes the equipment without its cartridge. See the [town progression 
 
 ## Protection and use
 
-Suit anomaly protection has four independent percentage/flat pairs:
+Suit anomaly protection has three independent percentage/flat pairs. Impact is a combat stat with its own pair:
 
 | Protection | Percentage field | Flat field | Damage types |
 | --- | --- | --- | --- |
 | Thermal | `thermalRes` | `flatThermalRes` | Burn, slow burn |
 | Electrical | `electricalRes` | `flatElectricalRes` | Shock |
 | Chemical | `chemicalRes` | `flatChemicalRes` | Acid, drowning, poison, nerve gas |
-| Gravitational | `gravitationalRes` | `flatGravitationalRes` | Crush, blast |
 
 Every concrete suit declares all eight fields, initially copying its previous `ar`/`far` values.
 These are definition values, so existing instances use them without changing saved item data.
 `getAR(field)` returns the remaining-damage multiplier; `getFAR(field)` returns flat absorption.
 Damage is `max((incoming - flat) * multiplier, 0)`. Base protection retains its ordinary durability
-taper below 80%. Suit tooltips list all four effective percentage reductions in their cosmetic units,
+taper below 80%. Suit tooltips list every effective percentage reduction in their cosmetic units,
 including zero ratings, without flat absorption or a protection subheader.
 The equipment footer shows each family's combined percentage reduction and flat absorption tooltip.
 
@@ -85,10 +84,14 @@ Legacy `ar`/`far` remain as fallback values and for existing untyped callers and
 headgear wear outside these families. Broad upgrades, attachments and the flat anomaly wish still
 apply to every family with their existing formulas. A type-specific field overrides its broad fallback,
 including explicit zero; flat attachments retain their existing behavior and do not add suit absorption.
-Equipped headgear may also supply these fields, otherwise its existing `ar`/`far` apply to all four.
+Equipped headgear may also supply these fields, otherwise its existing `ar`/`far` apply to every family, including impact.
 The existing resistance refresh paths update each family's cached network values.
-Mixed damage flags use the weakest applicable family's protection once, without stacking reductions.
-Crush damage still uses environmental headgear wear, including gravitational anomalies and physics impacts.
+Mixed anomaly flags use the weakest applicable anomaly family once, without stacking reductions.
+Impact is a combat stat, resolved between bullet and rupture. Explosions, gravitational anomalies, falls and
+blunt hits (human and mutant melee, controller melee, pseudogiant and Vareshka ground slams, player punches and
+blunt melee weapons) use its percentage first, then its flat absorption. Falls reduce damage but never wear
+suits or headgear. Other impact damage wears suits at the bullet rate and headgear at the combat rate.
+Tooltips and the equipment footer list Impact directly after Rupture.
 
 A filter has 0–100% condition. Effectiveness is `clamp(condition / 20, 0, 1)`: full at 20–100%, then
 linear below 20%. The headgear's percentage and flat radiation protection multiply its ordinary
@@ -125,6 +128,46 @@ Tank tooltips and condition bars show remaining air. Other tooltips show the req
 Equipment cards show the teal filter/tank bar above ordinary durability. Tooltips list filter/tank condition before durability.
 Protection tooltips and the equipment footer use effective radiation resistance.
 
+## Suit families and variants
+
+Each concrete suit declares its own protection, price, repair cost, weight, carry bonus and slots. The
+[variant plan](../../../../docs/suit-variant-plan.md) records the rules behind the values and full tables.
+
+- Every family offers Authority, Mercenary, Ecologist, Fanatic, Anarchist, Scavenger and Looted variants.
+  SSP-99 offers Ruby, Sapphire, Emerald, Amethyst and Diamond instead. SSP-99M has none.
+- Variants keep the base suit's flat protection, repair cost and slots; Anarchist adds one misc slot.
+- Base impact is the average of bullet and rupture. SEVA's rupture and impact are lower by hand.
+- Sky-3, Sky-4 and Expedition have definitions but no shop entry or progression yet, so players cannot get
+  them. Looted variants are not offered by Suture's conversion service.
+
+**Protection cap.** Worn totals in every family except radiation stop at 90% (`ix.suits.MAX_PROTECTION`).
+The damage multiplier cannot go below 0.1 however suits, headgear, attachments and upgrades stack. Protection
+tooltips show the same cap.
+
+**Repair cost.** `ITEM.fullRepairCost` is what a full repair costs before discounts, independent of price.
+`GetRepairCost` returns 1/200 of it because the repair service charges per missing point and doubles it.
+
+**Misc slots.** A suit saves its slot limits in `maxMiscSlots` when created and refreshes them only through the
+Equip action. An owned Anarchist suit gains its new slot after being taken off and put on again. Tooltips show
+the saved limit.
+
+**Looted melee.** A definition's `meleeDamageBonus` (the average of the base suit's bullet, rupture, impact
+and three anomaly values) raises damage from `tfa_nmrimelee_base` weapons against players and NPCs, and returns
+the stamina of a swing that hits. Wear and attachments do not change it. Misses cost stamina, the 20 stamina
+minimum to swing still applies, and fists are excluded. It does not apply where this plugin skips damage
+handling (PVP disabled or arena fights between players).
+
+**Saved-item conversion.** On every database connection, `sv_migration.lua` converts rows in `ix_items`:
+
+- The four colour trenchcoats become `suit_trenchcoat` and keep their colour in `legacyCoatSkin` until repainted.
+- Old Sky-3 (`suit_cs3`, `suit_cs3_ecologist`) becomes Sky-5. New Sky-3 items reuse those IDs and carry
+  `skyLineVersion`, so the conversion skips them. Keep `ITEM.skyLineVersion` on those two definitions.
+
+Each statement is one `UPDATE` that no longer matches what it changed, so repeat boots and several map servers
+are safe. Deploy all map servers together: a server still on the old definitions cannot load converted items.
+Back up the database before the first deployment. Characters keep their purchase and conversion unlocks,
+because Sky-5 and the Trenchcoat reuse the old progression step IDs.
+
 ## Saved state and inventory safety
 
 Installed condition lives in the equipment's `filterCondition` item data. Numbers from 0–100 mean an
@@ -155,6 +198,8 @@ Placement counts the returning cartridge's existing carried mass only once, incl
 Run from the repository root:
 
 ```sh
+luatex --luaonly tests/suit_variants_spec.lua
+python3 tests/suit_migration_spec.py
 luatex --luaonly tests/anomaly_resistance_spec.lua
 luatex --luaonly tests/gasmask_filters_spec.lua
 luatex --luaonly tests/headgear_durability_spec.lua
@@ -176,6 +221,6 @@ Check equipped and unequipped drag/drop, full-backpack replacement, the complete
 F cancellation just before completion, permission changes, repeated requests and filter wear during the delay.
 Inspect tooltips, all eight equipment protection statistics and both condition bars at narrow, 1080p,
 ultrawide and 4K resolutions. Temporarily give a test suit different thermal, electrical, chemical and
-gravitational ratings; compare each field anomaly's damage and equipment wear with its matching tooltip
+impact ratings; compare each field anomaly's damage and equipment wear with its matching tooltip
 and footer value. Restore the definition afterward. Check low durability, upgrades, attachments, the
 flat anomaly wish, reconnects and mixed damage flags. Standalone specs do not verify live rendering or networking.

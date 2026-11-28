@@ -62,19 +62,19 @@ end
 function suitBase:SetData(key, value) self.data[key] = value end
 
 local suit = setmetatable({ar = 0.3, far = 4, data = {equip = true, durability = 100}}, suitBase)
-for _, definition in ipairs(ix.suits.anomalyTypes) do
+for _, definition in ipairs(ix.suits.GetProtectionFamilies()) do
 	near(suit:getAR(definition.field), 0.7, "Legacy percentage fallback: " .. definition.name)
 	near(suit:getFAR(definition.flatField), 4, "Legacy flat fallback: " .. definition.name)
 end
 suit.thermalRes, suit.flatThermalRes = 0.6, 8
 suit.electricalRes, suit.flatElectricalRes = 0.4, 6
 suit.chemicalRes, suit.flatChemicalRes = 0.2, 2
-suit.gravitationalRes, suit.flatGravitationalRes = 0, 0
+suit.impactRes, suit.flatImpactRes = 0, 0
 near(suit:getAR("thermalRes"), 0.4, "Thermal tuning is independent")
 near(suit:getAR("electricalRes"), 0.6, "Electrical tuning is independent")
 near(suit:getAR("chemicalRes"), 0.8, "Chemical tuning is independent")
-near(suit:getAR("gravitationalRes"), 1, "Explicit zero overrides legacy percentage")
-near(suit:getFAR("flatGravitationalRes"), 0, "Explicit zero overrides legacy flat protection")
+near(suit:getAR("impactRes"), 1, "Explicit zero overrides legacy percentage")
+near(suit:getFAR("flatImpactRes"), 0, "Explicit zero overrides legacy flat protection")
 suit.data.durability = 40
 near(suit:getAR("thermalRes"), 0.7, "Durability tapers typed percentage protection")
 near(suit:getFAR("flatThermalRes"), 4, "Durability tapers typed flat protection")
@@ -84,7 +84,7 @@ near(suit:getFAR("flatThermalRes"), 0, "Broken suits lose base flat protection")
 suit.data.durability = 100
 suit.data.upgrades = {"broad", "removed"}
 suit.data.attachments = {exteriorSlots = {"broad", "removed"}, interiorSlots = false}
-for _, definition in ipairs(ix.suits.anomalyTypes) do
+for _, definition in ipairs(ix.suits.GetProtectionFamilies()) do
 	near(suit:getAR(definition.field), (1 - suit[definition.field] - 0.05) * 0.8,
 		"Broad upgrades and attachments retain their formula: " .. definition.name)
 	near(suit:getFAR(definition.flatField), suit[definition.flatField] + 2,
@@ -96,14 +96,18 @@ near(suit:getAR("thermalRes"), 0.32, "Typed zero upgrade overrides its broad bon
 near(suit:getFAR("flatThermalRes"), 8, "Typed zero flat upgrade overrides its broad bonus")
 suit.data.upgrades, suit.data.attachments = nil, nil
 
--- Load every concrete definition, including faction variants, and preserve its existing tuning.
+-- Load every concrete definition, including faction variants. Typed percentages are tuned separately;
+-- `ar` stays the broad anomaly value, and flat protection stays uniform.
 local paths = assert(io.popen("rg --files gamemodes/ix_cotz/schema/items/suit"))
 local suitCount = 0
 for path in paths:lines() do
 	ITEM = {skincustom = {}, bgcustom = {}, functions = {}}
 	assert(load(read(path):gsub("!=", "~="):gsub("!", "not "), "@" .. path))()
-	for _, definition in ipairs(ix.suits.anomalyTypes) do
-		check(ITEM[definition.field] == ITEM.ar, path .. " preserves percentage: " .. definition.name)
+	local anomalyMean = (ITEM.thermalRes + ITEM.electricalRes + ITEM.chemicalRes) / 3
+	check(math.abs(ITEM.ar - anomalyMean) <= 0.0006, path .. " keeps ar at its anomaly average")
+	for _, definition in ipairs(ix.suits.GetProtectionFamilies()) do
+		check(ITEM[definition.field] and ITEM[definition.field] <= ix.suits.MAX_PROTECTION,
+			path .. " declares a capped percentage: " .. definition.name)
 		check(ITEM[definition.flatField] == ITEM.far, path .. " preserves flat protection: " .. definition.name)
 	end
 	suitCount = suitCount + 1
@@ -115,6 +119,8 @@ local playerMeta = {}
 FindMetaTable = function() return playerMeta end
 PLUGIN = {}
 dofile("gamemodes/ix_cotz/plugins/suits/sh_plugin.lua")
+-- The Looted melee perk lives in sv_meleeperk.lua and is covered by suit_variants_spec.
+PLUGIN.ApplyMeleePerk = function() end
 local suitsPlugin = PLUGIN
 local helmet = {
 	ar = 0.2, far = 2, isHelmet = true, data = {equip = true, durability = 40},
@@ -143,7 +149,7 @@ for _, name in ipairs({
 }) do
 	client[name] = function() return 0 end
 end
-for _, definition in ipairs(ix.suits.anomalyTypes) do
+for _, definition in ipairs(ix.suits.GetProtectionFamilies()) do
 	near(client:getPercentageAnomalyRes(definition.field), (1 - suit[definition.field]) * 0.9,
 		"Equipped headgear and suit percentage combine: " .. definition.name)
 	near(client:getFlatAnomalyRes(definition.flatField), suit[definition.flatField] + 1,
@@ -151,7 +157,7 @@ for _, definition in ipairs(ix.suits.anomalyTypes) do
 end
 wishes.far = true
 client:RecalculateResistances()
-for _, definition in ipairs(ix.suits.anomalyTypes) do
+for _, definition in ipairs(ix.suits.GetProtectionFamilies()) do
 	near(client.network["ixper" .. definition.network .. "res"], (1 - suit[definition.field]) * 0.9,
 		"Each percentage is networked independently: " .. definition.name)
 	near(client.network["ixflat" .. definition.network .. "res"], suit[definition.flatField] + 6,
@@ -186,16 +192,33 @@ for index, definition in ipairs(ix.suits.anomalyTypes) do
 		suitsPlugin:EntityTakeDamage(client, info)
 		local expected = (100 - index) * index / 10
 		near(info.amount, expected, "Damage selects matching protection: " .. damageType)
-		near(suit.data.durability, 100 - expected / 50, "Suit wear uses matching damage: " .. damageType)
-		near(helmet.data.durability, 100 - expected / 100, "Headgear wear uses matching damage: " .. damageType)
+		local suitWear, headgearWear = expected / 50, expected / 100
+		if damageType == DMG_CLUB then
+			suitWear, headgearWear = expected / 100, expected / 400
+		elseif damageType == DMG_FALL then
+			suitWear, headgearWear = 0, 0
+		end
+		near(suit.data.durability, 100 - suitWear, "Suit wear uses matching damage: " .. damageType)
+		near(helmet.data.durability, 100 - headgearWear, "Headgear wear uses matching damage: " .. damageType)
 	end
+end
+-- Impact is a combat stat: percentage applies before flat absorption, and falls never wear equipment.
+client.network.ixperimpactres, client.network.ixflatimpactres = 0.5, 3
+for _, damageType in ipairs({DMG_CLUB, DMG_CRUSH, DMG_BLAST, DMG_FALL}) do
+	suit.data.durability, helmet.data.durability = 100, 100
+	local info = damageInfo(damageType)
+	suitsPlugin:EntityTakeDamage(client, info)
+	local fall = damageType == DMG_FALL
+	near(info.amount, 47, "Impact applies percentage before flat: " .. damageType)
+	near(suit.data.durability, fall and 100 or 100 - 0.47, "Impact suit wear uses combat rate: " .. damageType)
+	near(helmet.data.durability, fall and 100 or 100 - 48.5 / 400, "Impact headgear wear uses combat rate: " .. damageType)
 end
 near(ix.suits.GetAnomalyDamage(client, damageInfo(DMG_BURN + DMG_SHOCK)), 19.6,
 	"Mixed families use weakest protection once")
 near(ix.suits.GetAnomalyDamage(client, damageInfo(DMG_BURN + DMG_SLOWBURN)), 9.9,
 	"Mixed flags from one family do not stack")
 near(ix.suits.GetAnomalyDamage(client, damageInfo(DMG_BURN, 0)), 0, "Flat absorption cannot heal")
-for _, damageType in ipairs({DMG_GENERIC, DMG_FALL, DMG_RADIATION, DMG_SONIC, DMG_BULLET, DMG_CLUB}) do
+for _, damageType in ipairs({DMG_GENERIC, DMG_RADIATION, DMG_SONIC, DMG_BULLET, DMG_SLASH}) do
 	check(ix.suits.GetAnomalyDamage(client, damageInfo(damageType)) == nil,
 		"Other damage retains its existing handling: " .. damageType)
 end
@@ -211,11 +234,13 @@ suit.isBodyArmor = true
 suit.data.durability = 40
 local rows = {}
 for _, row in ipairs(ix.itemProperties.GetProtection(suit)) do rows[row.id] = row.text end
-for _, definition in ipairs(ix.suits.anomalyTypes) do
+for _, definition in ipairs(ix.suits.GetProtectionFamilies()) do
 	local reduction = suit[definition.field] / 2
+	local flat = suit:getFAR(definition.flatField)
 	local expected
-	if reduction ~= 0 then
+	if reduction ~= 0 or flat ~= 0 then
 		expected = definition.name .. ": " .. ix.itemProperties.Format(definition.network, reduction)
+			.. " + " .. ix.itemProperties.Format("number", math.Round(flat, 1))
 	end
 	check(rows["protection/" .. definition.network] == expected, "Tooltip effective protection: " .. definition.name)
 end

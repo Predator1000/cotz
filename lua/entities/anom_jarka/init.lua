@@ -1,9 +1,13 @@
 AddCSLuaFile("shared.lua")
 include("shared.lua")
 
+local fx = include("cotz/anomalies/sv_fx.lua")
+
 -- Explicit balancing parameters used by the spreadsheet export/import tool.
 ENT.BalanceDamage = 30
 ENT.BalanceCooldown = 0.5
+-- Seconds the flare keeps burning after the last contact.
+ENT.FlareTime = 3
 
 ENT.cooldown = 0
 
@@ -31,7 +35,7 @@ function ENT:Initialize()
 	self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 	self:SetName("Jarka Anomaly")
 	self:SetTrigger(1)
-	self:SetCollisionBounds( Vector( -60, -60, -5 ), Vector( 60, 60, 80 ) )
+	self:SetCollisionBounds( Vector( -30, -30, -5 ), Vector( 30, 30, 80 ) )
 	self:SetNWBool("StopParticle", false)
 	self:SetRenderMode( RENDERMODE_TRANSTEXTURE ) 
 	self:SetColor(Color(0,0,0,0))
@@ -48,13 +52,15 @@ function ENT:Touch(ent)
 	if timer.Exists(self:EntIndex().."_jarka_activated_"..ent:EntIndex()) then return end
 	if self.ActiveOnce then 
 		timer.Create(self:EntIndex().."_jarka_activated_sound", 0, 1, function()
+			if not IsValid(self) then return end
 			self:EmitSound("jarka_blast")
-			ParticleEffectAttach( "jarka_activated", PATTACH_ABSORIGIN_FOLLOW, self, 1 )
+			ParticleEffectAttach("cotz_anom_burner_flame", PATTACH_ABSORIGIN_FOLLOW, self, 0)
 		end)	
 		self.ActiveOnce = false
 	end
 	
 	timer.Create(self:EntIndex().."_jarka_activated_"..ent:EntIndex(), 0, 1, function()  -- Timer for multiple entity damage
+		if not IsValid(self) or not IsValid(ent) then return end
 		local damageInfo = DamageInfo()
 		damageInfo:SetDamage(self.BalanceDamage)
 		damageInfo:SetDamageType(DMG_BURN)
@@ -66,17 +72,20 @@ function ENT:Touch(ent)
 			ent:EmitSound(table.Random(bodyexplodesounds),100,98,1,CHAN_AUTO)
 			ParticleEffect("wick_gore_bloodsplash_new" , ent:GetPos(), Angle( 0, 0, 0 ) )
 			ent:Remove()
-		elseif ent.ixItemID and ix.item.instances[ent.ixItemID].isWeapon then
+		elseif IsValid(ent) and ent.ixItemID and ix.item.instances[ent.ixItemID] and ix.item.instances[ent.ixItemID].isWeapon then
 			ent:Remove()
 		end
 		self.Active = false
 	end)	
 
 	timer.Create(self:EntIndex().."_jarka_cooldown", self.BalanceCooldown, 1, function()
+		if not IsValid(self) then return end
 		self.Active = true
 	end)
 
-	timer.Create(self:EntIndex().."_jarka_sound_cooldown", 11, 1, function()
+	fx.Flash(self, self.FlareTime)
+	timer.Create(self:EntIndex().."_jarka_sound_cooldown", self.FlareTime, 1, function()
+		if not IsValid(self) then return end
 		self:StopSound("jarka_blast")
 		self:StopParticles()
 		-- The client owns the idle effect so it can stop it outside visual range.
@@ -106,4 +115,5 @@ function ENT:OnRemove()
 	self:StopSound("jarka_blast")
 	timer.Stop(self:EntIndex().."_jarka_cooldown")
 	timer.Stop(self:EntIndex().."_jarka_sound_cooldown")
+	fx.Clear(self)
 end

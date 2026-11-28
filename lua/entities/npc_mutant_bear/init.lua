@@ -3,6 +3,11 @@ AddCSLuaFile( "shared.lua" )
 include('shared.lua')
 include("STALKERNPCBaseVars.lua")
 
+ENT.PainSoundEnabled = true
+ENT.PainSound.name = "Stalker.Bear.Pain"
+ENT.PainSound.min = 1
+ENT.PainSound.max = 2
+
 ENT.DieSoundEnabled = true
 ENT.DieSound.name = "Stalker.Bear.Die"
 ENT.DieSound.min = 1
@@ -34,11 +39,6 @@ ENT.FBR = 5
 ENT.FBRAP = 15
 ENT.BR = 15
 
-ENT.CanJump = 0
-ENT.isAttacking = 0
-ENT.jumping1 = 0
-ENT.jumping2 = 0
-
 ENT.NextAbilityTime = 0
 
 ENT.MinRangeDist = 800
@@ -50,6 +50,25 @@ ENT.navigationLeapRange = 200
 
 ENT.navigationLeapAimHeight = 32
 ENT.navigationLeapSpeed = 3
+
+ENT.Abilities = {
+	{
+		name = "jump",
+		navigationLeap = "long",
+		meleeRange = "outside",
+		maxRange = ENT.navigationLeapRange,
+		chance = 0.5,
+		cooldown = 3,
+		recovery = 0.5,
+		phases = {
+			{duration = 0.2},
+			{
+				duration = 0, leap = "long", melee = 1, sound = "Stalker.Bear.Melee2",
+				untilGrounded = true, untilAnimationDone = true, maxDuration = 4.8,
+			},
+		},
+	},
+}
 
 function ENT:Initialize()
 	self.Model = "models/monsters/bear.mdl"
@@ -92,43 +111,6 @@ function ENT:STALKERNPCThinkEnemyValid()
 	
 end
 
-function ENT:STALKERNPCThink()
-	if (self.jumping1 < CurTime()) and self.isAttacking == 1 then
-		self:SetVelocity(self:STALKERNPCNavigationJumpVelocity(self:GetEnemy(), false))
-
-		self:STALKERNPCPlayAnimation("attack",1)
-		self:STALKERNPCMakeMeleeAttack(1)
-		self:EmitSound("Stalker.Bear.Melee2")
-		self.isAttacking = 2
-	end
-
-	if (self.jumping2 < CurTime()) and self.isAttacking == 2 then
-		self:STALKERNPCStopAllTimers()
-		self:STALKERNPCClearAnimation()
-		self.NextAbilityTime = CurTime()+0.5
-		self.isAttacking = 0
-	end
-end
-
 function ENT:STALKERNPCOnDeath()
 
-end
-
-function ENT:STALKERNPCDistanceForMeleeTooBig(_, forceJump)
-	if (self.cotzUnreachableRecovery or self.cotzNavigationRetreat) and not forceJump then return end
-	if(self.PlayingAnimation==false) then
-		local distance = (self:GetPos():Distance(self:GetEnemy():GetPos()))
-		if distance < self.navigationLeapRange then
-			if(self.CanJump<CurTime()) then
-				local TEMP_Rand = math.random(1,5)
-			
-				if TEMP_Rand == 1 or forceJump then
-					self.CanJump = CurTime()+3
-					self.isAttacking = 1
-					self.jumping1 = CurTime()+0.2
-					self.jumping2 = CurTime()+5
-				end
-			end
-		end
-	end
 end

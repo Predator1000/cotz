@@ -33,7 +33,8 @@ empty; author and verify each map's usable areas and entrances before exporting.
    points. Use noclip to mark the upper corner. The entire volume must be usable
    empty space inside the world. Stay clear of arenas and other dynamic systems.
 2. Return to normal playable ground and run /HideoutRecovery. This is the
-   fallback outside position if a player's original return point is blocked.
+   fallback outside position if a player's original return point is blocked. Entities players walk
+   through, such as dropped items, do not block arrival or return positions.
 3. Build the shell with **Hideout Template Marker** entities (see below), then save the complete build.
    Put the approved AdvDupe2 shell in the server's
    AdvDupe2.DataFolder/STALKERDupes/name.txt. Add a template, for example:
@@ -325,7 +326,7 @@ blank or unavailable appear as `Character #ID` in sharing and invitation-revocat
 | medical | 4×4 | `base_aid` | 1,000 roubles |
 | gear | 6×6 | Suits, headgear and carrying gear | 1,400 roubles |
 | weapon | 6×4 | `isWeapon == true` | 1,400 roubles |
-| fridge | 6×4 | `base_consumables` | 1,000 roubles |
+| fridge | 6×4 | `base_consumables`, zone-cooked meals (`base_cooked`) and raw meat (`base_cookable`) | 1,000 roubles |
 
 ### Upgrading at the contact
 

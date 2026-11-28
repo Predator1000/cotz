@@ -34,15 +34,18 @@ local definitions = {
 	{class = "anom_maysorubka_anomaly_type2", damageType = 1, amount = 75},
 	{class = "anom_electra_anomaly", damageType = 256, amount = 70},
 	{class = "anom_electra_anomaly_type2", damageType = 256, amount = 70},
-	{class = "anom_voronka_anomaly", damageType = 1, amount = 150, delay = 2, radius = 120},
-	{class = "anom_tramplin_anomaly", damageType = 1, amount = 400, delay = 6, radius = 250},
+	{class = "anom_voronka_anomaly", damageType = 1, amount = 150, delay = 2.3, radius = 120},
+	{class = "anom_tramplin_anomaly", damageType = 1, amount = 400, delay = 6.15, radius = 250},
 }
 
 for _, definition in ipairs(definitions) do
-	local timers, received = {}, {}
+	local timers, received, bursts = {}, {}, 0
 	local target = {
 		EntIndex = function() return 20 end,
 		IsRagdoll = function() return false end,
+		IsPlayer = function() return false end,
+		IsNPC = function() return false end,
+		IsNextBot = function() return false end,
 		TakeDamageInfo = function(_, info) received[#received + 1] = info end,
 	}
 	local meta = {}
@@ -55,9 +58,23 @@ for _, definition in ipairs(definitions) do
 	entity.StopParticles = function() end
 	entity.SetNWBool = function() end
 	if definition.class == "anom_tramplin_anomaly" then entity.Active = false end
-	local environment = setmetatable({
+	local environment
+	environment = setmetatable({
 		ENT = meta, DMG_BURN = 8, DMG_ACID = 1048576, DMG_CRUSH = 1, DMG_SHOCK = 256,
-		AddCSLuaFile = function() end, include = function() end,
+		AddCSLuaFile = function() end,
+		include = function(file)
+			if file == "cotz/anomalies/sv_mutantcapture.lua" then
+				return {Burst = function() bursts = bursts + 1 end}
+			end
+			if file == "cotz/anomalies/sv_fx.lua" then
+				local path = "lua/" .. file
+				local handle = assert(io.open(path))
+				local fxSource = handle:read("*a")
+				handle:close()
+
+				return assert(load(fxSource, "@" .. path, "t", environment))()
+			end
+		end,
 		hook = {Add = function() end}, sound = {Add = function() end},
 		DamageInfo = damageInfo, IsValid = function(value) return value ~= nil end,
 		Vector = vector, Angle = function() end,
@@ -84,7 +101,10 @@ for _, definition in ipairs(definitions) do
 		entity:Touch(target)
 	end
 	check(#received == 0, definition.class .. " damage waits for its activation timer")
-	for _, timerState in pairs(timers) do
+	-- Callbacks can create timers of their own, so run a snapshot of the pending ones.
+	local pending = {}
+	for _, timerState in pairs(timers) do pending[#pending + 1] = timerState end
+	for _, timerState in ipairs(pending) do
 		if timerState.delay == (definition.delay or 0) then timerState.callback() end
 	end
 	check(#received == 1, definition.class .. " activation damages once")
@@ -98,6 +118,7 @@ for _, definition in ipairs(definitions) do
 		check(info.origin.x == expectedOrigin.x and info.origin.y == expectedOrigin.y
 			and info.origin.z == expectedOrigin.z, definition.class .. " retains its area damage origin")
 		check(info.position == info.origin, definition.class .. " supplies the area origin as damage position")
+		check(bursts == 1, definition.class .. " gibs captured mutant corpses with its blast")
 	else
 		entity:Touch(target)
 		check(#received == 1, definition.class .. " inactive contact cannot damage again")
